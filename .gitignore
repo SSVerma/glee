@@ -1,0 +1,13 @@
+.gradle
+.idea
+build
+/iosApp/DerivedData
+/iosApp/Pods
+/iosApp/.xcworkspace
+/iosApp/iosApp.xcodeproj/project.xcworkspace
+/iosApp/iosApp.xcodeproj/xcuserdata
+.DS_Store
+local.properties
+glee.properties
+*.iml
+.kotlin/
