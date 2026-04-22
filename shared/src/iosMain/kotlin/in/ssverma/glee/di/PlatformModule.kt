@@ -11,6 +11,8 @@ import org.koin.core.qualifier.named
 actual val platformFileSystem: FileSystem = FileSystem.SYSTEM
 
 actual val platformModule: Module = module {
+    single { platformFileSystem }
+
     single<Path>(named("appDataDir")) {
         NSHomeDirectory().toPath().resolve("Documents")
     }

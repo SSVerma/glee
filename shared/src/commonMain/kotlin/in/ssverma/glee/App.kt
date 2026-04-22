@@ -8,10 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import `in`.ssverma.glee.domain.model.ThemeMode
-import `in`.ssverma.glee.ui.chat.ChatViewModel
-import `in`.ssverma.glee.ui.navigation.GleeNavHost
-import `in`.ssverma.glee.ui.theme.GleeTheme
+import `in`.ssverma.glee.features.chat.domain.model.ThemeMode
+import `in`.ssverma.glee.features.chat.ui.ChatViewModel
+import `in`.ssverma.glee.navigation.RootNavHost
+import `in`.ssverma.glee.core.ui.theme.GleeTheme
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -33,7 +33,7 @@ fun App() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            GleeNavHost(viewModel = viewModel)
+            RootNavHost(viewModel = viewModel)
         }
     }
 }

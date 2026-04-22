@@ -1,4 +1,4 @@
-package `in`.ssverma.glee.domain
+package `in`.ssverma.glee.features.chat.data.local
 
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
@@ -7,6 +7,8 @@ import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.LiteRtLmJniException
+import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
+import `in`.ssverma.glee.features.chat.domain.model.AiSkill
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -149,7 +151,7 @@ actual class LiteRtEngine actual constructor() {
         emit(AiChunk(text = "", isFinal = true))
     }.flowOn(Dispatchers.Default)
 
-    actual fun setSkills(skills: List<Skill>) {
+    actual fun setSkills(skills: List<AiSkill>) {
         // bridge logic
     }
 

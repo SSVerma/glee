@@ -1,4 +1,4 @@
-package `in`.ssverma.glee.utils
+package `in`.ssverma.glee.core.common.platform
 
 import android.app.ActivityManager
 import android.content.Context

@@ -1,3 +1,5 @@
-package `in`.ssverma.glee.domain
+package `in`.ssverma.glee.core.common
 
-actual fun currentTimeMillis(): Long = 0L // TODO: Implement for WasmJS
+import kotlin.js.Date
+
+actual fun currentTimeMillis(): Long = Date.now().toLong()

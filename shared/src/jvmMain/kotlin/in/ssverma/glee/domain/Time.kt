@@ -1,3 +1,3 @@
-package `in`.ssverma.glee.domain
+package `in`.ssverma.glee.core.common
 
 actual fun currentTimeMillis(): Long = System.currentTimeMillis()

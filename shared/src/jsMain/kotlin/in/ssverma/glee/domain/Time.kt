@@ -1,4 +1,4 @@
-package `in`.ssverma.glee.domain
+package `in`.ssverma.glee.core.common
 
 import kotlin.js.Date
 

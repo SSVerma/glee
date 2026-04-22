@@ -1,0 +1,76 @@
+package `in`.ssverma.glee.features.chat.data.remote
+
+import glee.shared.generated.resources.Res
+import glee.shared.generated.resources.download_failed
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.onDownload
+import io.ktor.client.request.header
+import io.ktor.client.request.prepareGet
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.utils.io.readAvailable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import okio.FileSystem
+import okio.Path
+import okio.buffer
+import org.jetbrains.compose.resources.getString
+
+class ModelDownloader(
+    private val client: HttpClient,
+    private val okioFs: FileSystem
+) {
+    /**
+     * Downloads a model file using streaming to avoid memory issues with large files.
+     */
+    fun downloadModel(url: String, targetPath: Path): Flow<DownloadStatus> = channelFlow {
+        send(DownloadStatus.Progress(0f))
+
+        try {
+            client.prepareGet(url) {
+                // IMPORTANT: Overwrite Accept header for binary download
+                header(HttpHeaders.Accept, "*/*")
+                
+                onDownload { bytesSentTotal, contentLength ->
+                    if (contentLength != null && contentLength > 0) {
+                        trySend(DownloadStatus.Progress(bytesSentTotal.toFloat() / contentLength))
+                    }
+                }
+            }.execute { response ->
+                if (response.status == HttpStatusCode.OK) {
+                    targetPath.parent?.let { parent ->
+                        if (!okioFs.exists(parent)) {
+                            okioFs.createDirectories(parent)
+                        }
+                    }
+
+                    val channel = response.bodyAsChannel()
+                    val sink = okioFs.sink(targetPath).buffer()
+                    try {
+                        val buffer = ByteArray(128 * 1024) // 128KB buffer
+                        while (!channel.isClosedForRead) {
+                            val read = channel.readAvailable(buffer)
+                            if (read <= 0) break
+                            sink.write(buffer, 0, read)
+                        }
+                        sink.flush()
+                    } finally {
+                        sink.close()
+                    }
+                    send(DownloadStatus.Success(targetPath))
+                } else {
+                    send(DownloadStatus.Error(getString(Res.string.download_failed)))
+                }
+            }
+        } catch (e: Exception) {
+            send(DownloadStatus.Error(getString(Res.string.download_failed)))
+        }
+    }
+}
+
+sealed interface DownloadStatus {
+    data class Progress(val progress: Float) : DownloadStatus
+    data class Success(val path: Path) : DownloadStatus
+    data class Error(val message: String) : DownloadStatus
+}

@@ -1,7 +1,7 @@
 package `in`.ssverma.glee.di
 
-import `in`.ssverma.glee.data.db.GleeDatabase
-import `in`.ssverma.glee.data.db.GleeDatabaseConstructor
+import `in`.ssverma.glee.core.database.GleeDatabase
+import `in`.ssverma.glee.core.database.GleeDatabaseConstructor
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -14,6 +14,8 @@ import org.koin.core.qualifier.named
 actual val platformFileSystem: FileSystem = FileSystem.SYSTEM
 
 actual val platformModule: Module = module {
+    single { platformFileSystem }
+
     single {
         val context: Context = get()
         val dbFile = context.filesDir.absolutePath.toPath().resolve("glee.db")

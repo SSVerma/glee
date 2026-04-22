@@ -24,5 +24,6 @@ actual val platformFileSystem: FileSystem = object : FileSystem() {
 }
 
 actual val platformModule: Module = module {
+    single { platformFileSystem }
     single<Path>(named("appDataDir")) { "/tmp".toPath() }
 }

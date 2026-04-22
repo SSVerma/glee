@@ -1,6 +1,12 @@
-package `in`.ssverma.glee.domain
+package `in`.ssverma.glee.features.chat.data.local
 
-import com.google.ai.edge.litertlm.*
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Conversation
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
+import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
+import `in`.ssverma.glee.features.chat.domain.model.AiSkill
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
@@ -45,7 +51,7 @@ actual class LiteRtEngine actual constructor() {
         }
     }
 
-    actual fun setSkills(skills: List<Skill>) {
+    actual fun setSkills(skills: List<AiSkill>) {
         // bridge logic
     }
 
