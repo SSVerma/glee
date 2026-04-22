@@ -29,11 +29,12 @@ class ChatViewModel(
     private val fileSystemSkill: LocalFileSystemSkill,
     private val modelDownloader: ModelDownloader,
     private val engine: LiteRtEngine,
+    private val settings: `in`.ssverma.glee.data.settings.GleeSettings,
     private val appDataDir: Path
 ) : ViewModel() {
 
     private val systemMetrics = getSystemMetrics()
-    private val _uiState = MutableStateFlow(ChatState())
+    private val _uiState = MutableStateFlow(ChatState(modelConfig = GleeModelConfig(useGpu = false)))
 
     private val downloadJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
     private var streamingJob: kotlinx.coroutines.Job? = null
@@ -98,11 +99,11 @@ class ChatViewModel(
         _uiState,
         chatManager.messages
     ) { state, messages ->
-        state.copy(messages = if (state.isPrivateMode) emptyList() else messages)
+        state.copy(messages = if (state.isPrivateMode) MessageList(emptyList()) else MessageList(messages))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ChatState()
+        initialValue = ChatState(modelConfig = GleeModelConfig(useGpu = false))
     )
 
     init {
@@ -113,6 +114,19 @@ class ChatViewModel(
                 delay(2000)
             }
         }
+        
+        viewModelScope.launch {
+            settings.themeMode.collect { mode ->
+                _uiState.update { it.copy(themeMode = mode) }
+            }
+        }
+        
+        viewModelScope.launch {
+            settings.isAdaptiveColorsEnabled.collect { enabled ->
+                _uiState.update { it.copy(isAdaptiveColorsEnabled = enabled) }
+            }
+        }
+
         initializeModels()
     }
 
@@ -127,12 +141,17 @@ class ChatViewModel(
                     model.copy(downloadStatus = ModelDownloadStatus.NotDownloaded)
                 }
             }
-            _uiState.update { it.copy(availableModels = updatedModels, selectedModel = updatedModels.first()) }
             
-            val selected = updatedModels.first()
-            if (selected.downloadStatus == ModelDownloadStatus.Downloaded) {
-                loadModel(selected)
+            val firstDownloaded = updatedModels.find { it.downloadStatus == ModelDownloadStatus.Downloaded }
+            
+            _uiState.update { 
+                it.copy(
+                    availableModels = updatedModels, 
+                    selectedModel = firstDownloaded ?: updatedModels.first() 
+                ) 
             }
+            
+            firstDownloaded?.let { loadModel(it) }
         }
     }
 
@@ -150,7 +169,13 @@ class ChatViewModel(
                         is DownloadStatus.Success -> {
                             updateModelStatus(model.id, ModelDownloadStatus.Downloaded)
                             downloadJobs.remove(model.id)
-                            if (_uiState.value.selectedModel?.id == model.id) loadModel(model)
+                            
+                            // Load the model if it's the one we currently have "selected" or if nothing is ready
+                            val currentState = _uiState.value
+                            if (currentState.selectedModel?.id == model.id || !currentState.isModelReady) {
+                                _uiState.update { it.copy(selectedModel = it.availableModels.find { m -> m.id == model.id }) }
+                                _uiState.value.selectedModel?.let { loadModel(it) }
+                            }
                         }
                         is DownloadStatus.Error -> {
                             updateModelStatus(model.id, ModelDownloadStatus.Error(status.message))
@@ -181,7 +206,7 @@ class ChatViewModel(
                 platformFileSystem.delete(targetPath)
                 updateModelStatus(model.id, ModelDownloadStatus.NotDownloaded)
                 if (_uiState.value.selectedModel?.id == model.id) {
-                    _uiState.update { it.copy(isModelReady = false) }
+                    _uiState.update { it.copy(isModelReady = false, selectedModel = null) }
                 }
             }
         }
@@ -201,16 +226,30 @@ class ChatViewModel(
 
     private suspend fun loadModel(model: ModelInfo) {
         val path = appDataDir.resolve("${model.id}.litertlm")
-        _uiState.update { it.copy(streamingContent = "Loading ${model.name}...", isModelReady = false) }
+        val currentConfig = _uiState.value.modelConfig
+        _uiState.update { it.copy(isInitializing = true, isModelReady = false) }
         val result = withContext(Dispatchers.Default) {
-            engine.loadModel(`in`.ssverma.glee.domain.ModelConfig(modelPath = path.toString()))
+            engine.loadModel(
+                `in`.ssverma.glee.domain.ModelConfig(
+                    modelPath = path.toString(),
+                    temperature = currentConfig.temperature,
+                    topK = currentConfig.topK,
+                    useGpu = currentConfig.useGpu
+                )
+            )
         }
         if (result.isSuccess) {
-            _uiState.update { it.copy(streamingContent = "Model ready.", isModelReady = true, metrics = it.metrics.copy(modelName = model.name)) }
+            _uiState.update { 
+                it.copy(
+                    isInitializing = false, 
+                    isModelReady = true, 
+                    metrics = it.metrics.copy(modelName = model.name) 
+                ) 
+            }
             delay(1000)
             _uiState.update { it.copy(streamingContent = "") }
         } else {
-            _uiState.update { it.copy(streamingContent = "Model load failed.", isModelReady = false) }
+            _uiState.update { it.copy(isInitializing = false, isModelReady = false) }
         }
     }
 
@@ -255,26 +294,41 @@ class ChatViewModel(
                 if (intent.model.downloadStatus == ModelDownloadStatus.Downloaded) {
                     _uiState.update { it.copy(selectedModel = intent.model) }
                     viewModelScope.launch { loadModel(intent.model) }
-                } else {
-                    _uiState.update { it.copy(pendingModelDownload = intent.model) }
                 }
             }
-            is ChatIntent.CancelDownload -> cancelDownload(intent.model.id)
-            is ChatIntent.DeleteModel -> deleteModel(intent.model)
+            is ChatIntent.CancelDownload -> cancelDownload(intent.modelId)
+            is ChatIntent.DeleteModel -> {
+                _uiState.update { it.copy(modelToDelete = intent.model) }
+            }
+            ChatIntent.ConfirmDeleteModel -> {
+                _uiState.value.modelToDelete?.let { model ->
+                    deleteModel(model)
+                    _uiState.update { it.copy(modelToDelete = null) }
+                }
+            }
+            ChatIntent.CancelDeleteModel -> {
+                _uiState.update { it.copy(modelToDelete = null) }
+            }
             is ChatIntent.UpdateHfToken -> {
                 _uiState.update { it.copy(hfToken = intent.token) }
             }
-            is ChatIntent.UpdateModelConfig -> _uiState.update { it.copy(modelConfig = intent.config) }
-            is ChatIntent.SetThemeMode -> _uiState.update { it.copy(themeMode = intent.mode) }
-            is ChatIntent.SetAdaptiveColors -> _uiState.update { it.copy(isAdaptiveColorsEnabled = intent.enabled) }
+            is ChatIntent.UpdateModelConfig -> {
+                val oldGpu = _uiState.value.modelConfig.useGpu
+                _uiState.update { it.copy(modelConfig = intent.config) }
+                // Reload model if GPU toggle changed
+                if (oldGpu != intent.config.useGpu) {
+                    _uiState.value.selectedModel?.let { model ->
+                        if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
+                            viewModelScope.launch { loadModel(model) }
+                        }
+                    }
+                }
+            }
+            is ChatIntent.SetThemeMode -> settings.setThemeMode(intent.mode)
+            is ChatIntent.SetAdaptiveColors -> settings.setAdaptiveColorsEnabled(intent.enabled)
             ChatIntent.ImportModel -> { /* TODO */ }
             ChatIntent.TogglePrivateMode -> _uiState.update { it.copy(isPrivateMode = !it.isPrivateMode) }
             
-            is ChatIntent.ConfirmDownload -> {
-                _uiState.update { it.copy(selectedModel = intent.model, pendingModelDownload = null) }
-                downloadModel(intent.model)
-            }
-            ChatIntent.CancelPendingDownload -> _uiState.update { it.copy(pendingModelDownload = null) }
             is ChatIntent.UpdateSystemPrompt -> {
                 chatManager.updateSystemPrompt(intent.prompt)
                 _uiState.update { it.copy(systemPrompt = intent.prompt) }
@@ -329,7 +383,12 @@ class ChatViewModel(
                     }
                     if (chunk.isFinal) {
                         chatManager.commitAssistantMessage(fullResponse)
-                        _uiState.update { it.copy(streamingContent = "", isStreaming = false) }
+                        _uiState.update { 
+                            it.copy(
+                                streamingContent = "", 
+                                isStreaming = false 
+                            ) 
+                        }
                         streamingJob = null
                     }
                 }

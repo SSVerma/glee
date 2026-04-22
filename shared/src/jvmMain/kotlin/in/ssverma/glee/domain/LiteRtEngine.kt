@@ -50,7 +50,7 @@ actual class LiteRtEngine actual constructor() {
     }
 
     actual fun close() {
-        // close logic
+        // close
     }
     
     private fun closeInternal() {

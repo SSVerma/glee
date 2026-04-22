@@ -128,7 +128,11 @@ kotlin {
                 implementation(libs.filekit.core)
                 
                 // Markdown
-                implementation(libs.markdown.renderer)
+                implementation(project(":core-markdown"))
+                
+                // Settings
+                implementation(libs.multiplatform.settings.no.arg)
+                implementation(libs.multiplatform.settings.coroutines)
                 
                 // Room
                 implementation(libs.androidx.room3.runtime)

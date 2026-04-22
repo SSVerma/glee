@@ -7,6 +7,9 @@ import `in`.ssverma.glee.domain.AiChatManager
 import `in`.ssverma.glee.domain.LiteRtEngine
 import `in`.ssverma.glee.domain.LocalFileSystemSkill
 import `in`.ssverma.glee.ui.chat.ChatViewModel
+import `in`.ssverma.glee.data.settings.GleeSettings
+import com.russhwolf.settings.Settings
+import com.russhwolf.settings.ObservableSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.HttpTimeout
@@ -27,6 +30,9 @@ import org.koin.dsl.module
 import org.koin.core.KoinApplication
 
 val commonModule = module {
+    single<ObservableSettings> { Settings() as ObservableSettings }
+    singleOf(::GleeSettings)
+
     single {
         val client = HttpClient {
             install(ContentNegotiation) {
@@ -74,6 +80,7 @@ val commonModule = module {
             fileSystemSkill = get(),
             modelDownloader = get(),
             engine = get(),
+            settings = get(),
             appDataDir = get(named("appDataDir"))
         )
     }

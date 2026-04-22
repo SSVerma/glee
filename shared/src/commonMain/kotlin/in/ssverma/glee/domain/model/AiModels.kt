@@ -33,7 +33,7 @@ data class GleeModelConfig(
     val temperature: Float = 0.7f,
     val topK: Int = 40,
     val topP: Float = 0.95f,
-    val useGpu: Boolean = true,
+    val useGpu: Boolean = false,
     val enableThinking: Boolean = false
 )
 

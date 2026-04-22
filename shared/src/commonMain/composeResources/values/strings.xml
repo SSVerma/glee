@@ -59,4 +59,22 @@
     <string name="suggestion_recipe">Write a healthy breakfast recipe</string>
     <string name="suggestion_email">Help me draft an email to my landlord</string>
     <string name="suggestion_workout">Give me some indoor workout ideas</string>
+    <string name="model_benchmark">Model Benchmark</string>
+    <string name="benchmark_desc">This will run a standardized test to measure the inference speed (Tokens Per Second) and memory efficiency of the current model on your device.</string>
+    <string name="start_benchmark">Start Benchmark</string>
+    <string name="system_prompt">SYSTEM PROMPT</string>
+    <string name="attach">Attach</string>
+    <string name="tools">Tools</string>
+    <string name="action">Action</string>
+    <string name="executing_tool">Executing tool: %s…</string>
+    <string name="default_system_prompt">You are Glee, a short, crisp, and on-point AI assistant. Keep your answers concise.</string>
+    <string name="intelligence">Intelligence</string>
+    <string name="intelligence_desc">Configure system prompts and model behavior.</string>
+    <string name="performance">Performance</string>
+    <string name="performance_desc">View real-time resource usage and latency.</string>
+    <string name="skills">Skills</string>
+    <string name="skills_desc">Manage external tools Glee can use.</string>
+    <string name="model_initializing">Model is initializing…</string>
+    <string name="please_wait">Please wait while we prepare Glee for you.</string>
+    <string name="glee_tools">Glee Tools</string>
 </resources>

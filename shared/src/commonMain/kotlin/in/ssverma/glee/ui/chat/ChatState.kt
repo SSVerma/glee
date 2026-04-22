@@ -1,10 +1,12 @@
 package `in`.ssverma.glee.ui.chat
 
+import androidx.compose.runtime.Immutable
 import `in`.ssverma.glee.domain.model.*
 import io.github.vinceglb.filekit.core.PlatformFile
 
+@Immutable
 data class ChatState(
-    val messages: List<ChatMessage> = emptyList(),
+    val messages: MessageList = MessageList(emptyList()),
     val currentInput: String = "",
     val isStreaming: Boolean = false,
     val streamingContent: String = "",
@@ -12,6 +14,7 @@ data class ChatState(
     val suggestions: List<String> = emptyList(),
     val attachedFiles: List<AttachedFile> = emptyList(),
     val isModelReady: Boolean = false,
+    val isInitializing: Boolean = false,
     val hfToken: String = "",
     val activeSkills: Map<String, Boolean> = mapOf(
         "local_file_system" to true,
@@ -25,10 +28,10 @@ data class ChatState(
     val isAdaptiveColorsEnabled: Boolean = true,
     val isPrivateMode: Boolean = false,
     
-    // UI state for dialogs
-    val pendingModelDownload: ModelInfo? = null,
+    // UI state
     val showSystemPromptEditor: Boolean = false,
-    val systemPrompt: String = "You are Glee, a short, crisp, and on-point AI assistant. Keep your answers concise."
+    val systemPrompt: String = "You are Glee, a short, crisp, and on-point AI assistant. Keep your answers concise.",
+    val modelToDelete: ModelInfo? = null
 )
 
 sealed interface ChatIntent {
@@ -41,8 +44,10 @@ sealed interface ChatIntent {
     data class ToggleSkill(val skillId: String, val enabled: Boolean) : ChatIntent
     data class DownloadModel(val model: ModelInfo) : ChatIntent
     data class SelectModel(val model: ModelInfo) : ChatIntent
-    data class CancelDownload(val model: ModelInfo) : ChatIntent
+    data class CancelDownload(val modelId: String) : ChatIntent
     data class DeleteModel(val model: ModelInfo) : ChatIntent
+    data object ConfirmDeleteModel : ChatIntent
+    data object CancelDeleteModel : ChatIntent
     data class UpdateHfToken(val token: String) : ChatIntent
     data class UpdateModelConfig(val config: GleeModelConfig) : ChatIntent
     data class SetThemeMode(val mode: ThemeMode) : ChatIntent
@@ -51,8 +56,6 @@ sealed interface ChatIntent {
     data object TogglePrivateMode : ChatIntent
     
     // New intents
-    data class ConfirmDownload(val model: ModelInfo) : ChatIntent
-    data object CancelPendingDownload : ChatIntent
     data class UpdateSystemPrompt(val prompt: String) : ChatIntent
     data object RestoreDefaultSystemPrompt : ChatIntent
     data object ToggleSystemPromptEditor : ChatIntent

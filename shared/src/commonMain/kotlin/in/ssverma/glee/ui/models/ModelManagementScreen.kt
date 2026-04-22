@@ -80,7 +80,7 @@ fun ModelManagementScreen(
                     ModelManagementItem(
                         model = model,
                         onDownload = { viewModel.onIntent(ChatIntent.DownloadModel(model)) },
-                        onCancel = { viewModel.onIntent(ChatIntent.CancelDownload(model)) },
+                        onCancel = { viewModel.onIntent(ChatIntent.CancelDownload(model.id)) },
                         onDelete = { viewModel.onIntent(ChatIntent.DeleteModel(model)) },
                         onSelect = { 
                             viewModel.onIntent(ChatIntent.SelectModel(model)) 
@@ -90,6 +90,27 @@ fun ModelManagementScreen(
                 }
             }
         }
+    }
+
+    uiState.modelToDelete?.let { model ->
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ChatIntent.CancelDeleteModel) },
+            title = { Text("Delete ${model.name}?") },
+            text = { Text("Are you sure you want to delete this model? You will need to download it again to use it.") },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onIntent(ChatIntent.ConfirmDeleteModel) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelDeleteModel) }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
     }
 }
 
