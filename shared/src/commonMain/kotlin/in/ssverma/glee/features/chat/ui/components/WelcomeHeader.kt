@@ -60,7 +60,7 @@ private fun StandardWelcomeHeader(modifier: Modifier = Modifier) {
     ) {
         val welcomeText = buildAnnotatedString {
             withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
-                append("Meet ")
+                append("Hi, How can ")
             }
             withStyle(
                 style = SpanStyle(
@@ -69,6 +69,9 @@ private fun StandardWelcomeHeader(modifier: Modifier = Modifier) {
                 )
             ) {
                 append("Glee")
+            }
+            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)) {
+                append(" help you today?")
             }
         }
 
@@ -81,7 +84,17 @@ private fun StandardWelcomeHeader(modifier: Modifier = Modifier) {
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Your Offline and Private AI assistant",
+            text = buildAnnotatedString {
+                append("Your ")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)) {
+                    append("Offline")
+                }
+                append(" and ")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)) {
+                    append("Private")
+                }
+                append(" AI assistant")
+            },
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             fontWeight = FontWeight.Medium,
