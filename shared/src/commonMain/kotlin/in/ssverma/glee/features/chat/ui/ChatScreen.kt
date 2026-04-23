@@ -57,7 +57,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
-import glee.shared.generated.resources.benchmark_desc
 import glee.shared.generated.resources.cancel
 import glee.shared.generated.resources.delete
 import glee.shared.generated.resources.delete_conversation_desc
@@ -68,10 +67,8 @@ import glee.shared.generated.resources.done
 import glee.shared.generated.resources.dont_show_again
 import glee.shared.generated.resources.incognito_desc
 import glee.shared.generated.resources.incognito_info_title
-import glee.shared.generated.resources.model_benchmark
 import glee.shared.generated.resources.model_initializing
 import glee.shared.generated.resources.please_wait
-import glee.shared.generated.resources.start_benchmark
 import glee.shared.generated.resources.suggestion_email
 import glee.shared.generated.resources.suggestion_recipe
 import glee.shared.generated.resources.suggestion_trip
@@ -122,7 +119,6 @@ fun ChatScreen(
     var currentActionSheet by remember { mutableStateOf(ChatActionSheetType.Root) }
 
     var showModelSelectionSheet by remember { mutableStateOf(false) }
-    var showBenchmarkDialog by remember { mutableStateOf(false) }
 
     val adaptiveInfo = currentWindowAdaptiveInfo()
     val isWide = adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
@@ -237,6 +233,9 @@ fun ChatScreen(
                                                 ChatIntent.RestoreDefaultSystemPrompt
                                             )
                                         },
+                                        onSave = {
+                                            viewModel.onIntent(ChatIntent.SaveIntelligenceConfig)
+                                        },
                                         onBack = { currentActionSheet = ChatActionSheetType.Root }
                                     )
                                 }
@@ -244,7 +243,6 @@ fun ChatScreen(
                                 ChatActionSheetType.Performance -> {
                                     GleePerformanceSheet(
                                         metrics = uiState.metrics,
-                                        onBenchmarkClick = { showBenchmarkDialog = true },
                                         onBack = { currentActionSheet = ChatActionSheetType.Root }
                                     )
                                 }
@@ -307,20 +305,18 @@ fun ChatScreen(
                                 )
                             },
                             onRestoreDefaultPrompt = { viewModel.onIntent(ChatIntent.RestoreDefaultSystemPrompt) },
-                            onBack = { currentActionSheet = ChatActionSheetType.Root },
-                            modifier = Modifier.padding(bottom = 32.dp)
+                            onSave = {
+                                viewModel.onIntent(ChatIntent.SaveIntelligenceConfig)
+                                showActionSheet = false
+                            },
+                            onBack = { currentActionSheet = ChatActionSheetType.Root }
                         )
                     }
 
                     ChatActionSheetType.Performance -> {
                         GleePerformanceSheet(
                             metrics = uiState.metrics,
-                            onBenchmarkClick = {
-                                showActionSheet = false
-                                showBenchmarkDialog = true
-                            },
-                            onBack = { currentActionSheet = ChatActionSheetType.Root },
-                            modifier = Modifier.padding(bottom = 32.dp)
+                            onBack = { currentActionSheet = ChatActionSheetType.Root }
                         )
                     }
 
@@ -358,24 +354,6 @@ fun ChatScreen(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)
             )
         }
-    }
-
-    if (showBenchmarkDialog) {
-        AlertDialog(
-            onDismissRequest = { showBenchmarkDialog = false },
-            title = { Text(stringResource(Res.string.model_benchmark)) },
-            text = { Text(stringResource(Res.string.benchmark_desc)) },
-            confirmButton = {
-                Button(onClick = { showBenchmarkDialog = false }) {
-                    Text(stringResource(Res.string.start_benchmark))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBenchmarkDialog = false }) {
-                    Text(stringResource(Res.string.cancel))
-                }
-            }
-        )
     }
 
     uiState.modelToDelete?.let { model ->

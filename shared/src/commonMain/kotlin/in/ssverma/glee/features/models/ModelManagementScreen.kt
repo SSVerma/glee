@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DownloadForOffline
@@ -58,7 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
-import glee.shared.generated.resources.benchmark
 import glee.shared.generated.resources.cancel
 import glee.shared.generated.resources.delete
 import glee.shared.generated.resources.delete_model_desc
@@ -329,24 +327,14 @@ fun ModelManagementItem(
                 }
 
                 ModelDownloadStatus.Downloaded -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(onClick = { }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.BarChart, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(Res.string.benchmark))
-                        }
-                        Button(onClick = onSelect, modifier = Modifier.weight(1f)) {
-                            Text(stringResource(Res.string.try_it))
-                            Spacer(Modifier.width(8.dp))
-                            Icon(
-                                Icons.AutoMirrored.Filled.Send,
-                                null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                    Button(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(Res.string.try_it))
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            null,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
 

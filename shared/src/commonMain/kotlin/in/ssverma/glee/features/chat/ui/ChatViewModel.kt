@@ -168,6 +168,28 @@ class ChatViewModel(
         }
 
         viewModelScope.launch {
+            combine(
+                settings.systemPrompt,
+                settings.temperature,
+                settings.topK,
+                settings.useGpu
+            ) { systemPrompt, temp, topK, useGpu ->
+                val defaultPrompt = getString(Res.string.default_system_prompt)
+                _uiState.update { 
+                    it.copy(
+                        systemPrompt = systemPrompt ?: defaultPrompt,
+                        modelConfig = it.modelConfig.copy(
+                            temperature = temp,
+                            topK = topK,
+                            useGpu = useGpu
+                        )
+                    )
+                }
+                chatManager.updateSystemPrompt(systemPrompt ?: defaultPrompt)
+            }.collect {}
+        }
+
+        viewModelScope.launch {
             chatManager.loadConversations()
         }
 
@@ -395,16 +417,7 @@ class ChatViewModel(
                 _uiState.update { it.copy(hfToken = intent.token) }
             }
             is ChatIntent.UpdateModelConfig -> {
-                val oldGpu = _uiState.value.modelConfig.useGpu
                 _uiState.update { it.copy(modelConfig = intent.config) }
-                // Reload model if GPU toggle changed
-                if (oldGpu != intent.config.useGpu) {
-                    _uiState.value.selectedModel?.let { model ->
-                        if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
-                            viewModelScope.launch { loadModel(model) }
-                        }
-                    }
-                }
             }
             is ChatIntent.SetThemeMode -> settings.setThemeMode(intent.mode)
             is ChatIntent.SetAdaptiveColors -> settings.setAdaptiveColorsEnabled(intent.enabled)
@@ -438,8 +451,22 @@ class ChatViewModel(
             }
             
             is ChatIntent.UpdateSystemPrompt -> {
-                chatManager.updateSystemPrompt(intent.prompt)
                 _uiState.update { it.copy(systemPrompt = intent.prompt) }
+            }
+            ChatIntent.SaveIntelligenceConfig -> {
+                val state = _uiState.value
+                settings.setSystemPrompt(state.systemPrompt)
+                settings.setTemperature(state.modelConfig.temperature)
+                settings.setTopK(state.modelConfig.topK)
+                settings.setUseGpu(state.modelConfig.useGpu)
+                chatManager.updateSystemPrompt(state.systemPrompt)
+
+                // Apply changes to the engine
+                state.selectedModel?.let { model ->
+                    if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
+                        viewModelScope.launch { loadModel(model) }
+                    }
+                }
             }
             ChatIntent.RestoreDefaultSystemPrompt -> {
                 viewModelScope.launch {

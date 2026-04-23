@@ -74,6 +74,7 @@ sealed interface ChatIntent {
     data class UpdateSystemPrompt(val prompt: String) : ChatIntent
     data object RestoreDefaultSystemPrompt : ChatIntent
     data object ToggleSystemPromptEditor : ChatIntent
+    data object SaveIntelligenceConfig : ChatIntent
     data object StopStreaming : ChatIntent
     
     data class StartConversation(val conversation: Conversation) : ChatIntent

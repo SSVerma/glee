@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,8 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Speed
 import glee.shared.generated.resources.Res
-import glee.shared.generated.resources.benchmark
 import glee.shared.generated.resources.context_window
 import glee.shared.generated.resources.context_window_value
 import glee.shared.generated.resources.latency
@@ -50,7 +51,6 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun GleePerformanceSheet(
     metrics: ChatMetrics,
-    onBenchmarkClick: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -106,6 +106,7 @@ fun GleePerformanceSheet(
 
                 PerformanceMetricItem(
                     label = stringResource(Res.string.context_window),
+                    icon = Icons.Default.Dns,
                     value = stringResource(Res.string.context_window_value, metrics.contextUsed / 1000, metrics.contextMax / 1000),
                     progress = metrics.contextUsed.toFloat() / metrics.contextMax,
                     color = MaterialTheme.colorScheme.primary
@@ -113,16 +114,27 @@ fun GleePerformanceSheet(
 
                 PerformanceMetricItem(
                     label = stringResource(Res.string.ram_usage),
-                    value = stringResource(Res.string.ram_usage_value, metrics.ramUsedGb, metrics.ramTotalGb.toInt()),
+                    icon = Icons.Default.Memory,
+                    value = stringResource(
+                        Res.string.ram_usage_value,
+                        ((metrics.ramUsedGb * 10).toInt() / 10.0).toString(),
+                        metrics.ramTotalGb.toInt()
+                    ),
                     progress = metrics.ramUsedGb / metrics.ramTotalGb,
                     color = MaterialTheme.colorScheme.secondary
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Icon(
+                        Icons.Default.Speed,
+                        null,
+                        modifier = Modifier.size(32.dp),
+                        tint = Color(0xFF4CAF50)
+                    )
                     Column {
                         Text(
                             text = stringResource(Res.string.latency),
@@ -138,16 +150,6 @@ fun GleePerformanceSheet(
                             fontWeight = FontWeight.Black
                         )
                     }
-                    Button(
-                        onClick = onBenchmarkClick,
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            stringResource(Res.string.benchmark),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
             }
         }
@@ -157,19 +159,33 @@ fun GleePerformanceSheet(
 @Composable
 private fun PerformanceMetricItem(
     label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     value: String,
     progress: Float,
     color: Color
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 0.8.sp
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    icon,
+                    null,
+                    modifier = Modifier.size(16.dp),
+                    tint = color
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = label.uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.8.sp
+                )
+            }
             Text(
                 text = value,
                 style = MaterialTheme.typography.labelLarge,
@@ -180,7 +196,7 @@ private fun PerformanceMetricItem(
             progress = { progress.coerceIn(0f, 1f) },
             modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
             color = color,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             strokeCap = StrokeCap.Round
         )
     }
