@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import glee.shared.generated.resources.Res
+import androidx.compose.material3.TextButton
+import glee.shared.generated.resources.manage_models
 import glee.shared.generated.resources.select_model
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
@@ -36,13 +38,23 @@ fun ModelSelectionContent(
     availableModels: List<ModelInfo>,
     selectedModel: ModelInfo?,
     onModelSelected: (ModelInfo) -> Unit,
+    onManageModelsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.padding(16.dp)) {
-        Text(
-            text = stringResource(Res.string.select_model),
-            style = MaterialTheme.typography.titleLarge
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(Res.string.select_model),
+                style = MaterialTheme.typography.titleLarge
+            )
+            TextButton(onClick = onManageModelsClick) {
+                Text(text = stringResource(Res.string.manage_models))
+            }
+        }
         Spacer(Modifier.height(16.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(availableModels) { model ->

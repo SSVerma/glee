@@ -4,9 +4,11 @@ package `in`.ssverma.glee.features.models
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,9 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -58,6 +59,10 @@ import androidx.compose.ui.unit.sp
 import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.cancel
+import glee.shared.generated.resources.cancel_download_confirm
+import glee.shared.generated.resources.cancel_download_desc
+import glee.shared.generated.resources.cancel_download_dismiss
+import glee.shared.generated.resources.cancel_download_title
 import glee.shared.generated.resources.delete
 import glee.shared.generated.resources.delete_model_desc
 import glee.shared.generated.resources.delete_model_title
@@ -120,22 +125,40 @@ fun ModelManagementScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            LazyVerticalGrid(
-                columns = if (isWide) GridCells.Fixed(2) else GridCells.Fixed(1),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            val modelChunks = if (isWide) {
+                uiState.availableModels.chunked(2)
+            } else {
+                uiState.availableModels.chunked(1)
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(uiState.availableModels) { model ->
-                    ModelManagementItem(
-                        model = model,
-                        onDownload = { viewModel.onIntent(ChatIntent.DownloadModel(model)) },
-                        onCancel = { viewModel.onIntent(ChatIntent.CancelDownload(model.id)) },
-                        onDelete = { viewModel.onIntent(ChatIntent.DeleteModel(model)) },
-                        onSelect = {
-                            viewModel.onIntent(ChatIntent.SelectModel(model))
-                            onClose()
+                items(modelChunks) { chunk ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        chunk.forEach { model ->
+                            ModelManagementItem(
+                                model = model,
+                                onDownload = { viewModel.onIntent(ChatIntent.DownloadModel(model)) },
+                                onCancel = { viewModel.onIntent(ChatIntent.CancelDownload(model.id)) },
+                                onDelete = { viewModel.onIntent(ChatIntent.DeleteModel(model)) },
+                                onSelect = {
+                                    viewModel.onIntent(ChatIntent.SelectModel(model))
+                                    onClose()
+                                },
+                                modifier = Modifier.weight(1f).fillMaxHeight()
+                            )
                         }
-                    )
+                        // Fill empty space if odd number of items in wide mode
+                        if (isWide && chunk.size == 1) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         }
@@ -149,17 +172,38 @@ fun ModelManagementScreen(
             confirmButton = {
                 Button(
                     onClick = { viewModel.onIntent(ChatIntent.ConfirmDeleteModel) },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text(
                         stringResource(Res.string.delete),
-                        color = MaterialTheme.colorScheme.onErrorContainer
+                        color = MaterialTheme.colorScheme.onError
                     )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelDeleteModel) }) {
                     Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (uiState.showCancelDownloadDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ChatIntent.DismissCancelDownload) },
+            title = { Text(stringResource(Res.string.cancel_download_title)) },
+            text = { Text(stringResource(Res.string.cancel_download_desc)) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onIntent(ChatIntent.ConfirmCancelDownload) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.cancel_download_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onIntent(ChatIntent.DismissCancelDownload) }) {
+                    Text(stringResource(Res.string.cancel_download_dismiss))
                 }
             }
         )
@@ -172,24 +216,25 @@ fun ModelManagementItem(
     onDownload: () -> Unit,
     onCancel: () -> Unit,
     onDelete: () -> Unit,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val uriHandler = LocalUriHandler.current
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp).fillMaxHeight()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = model.name,
@@ -256,7 +301,8 @@ fun ModelManagementItem(
             Text(
                 text = model.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
             )
 
             Spacer(Modifier.height(12.dp))

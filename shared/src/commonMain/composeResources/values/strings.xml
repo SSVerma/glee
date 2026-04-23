@@ -93,6 +93,12 @@
     <string name="dont_show_again">Don't show again</string>
     <string name="temporary_chat">Temporary Chat</string>
     <string name="temporary_chat_desc">Temporary chats don't appear in Recent chats or Glee activity.</string>
+    <string name="manage_models">Manage Models</string>
+    <string name="download_cancelled">Download cancelled.</string>
+    <string name="cancel_download_title">Cancel download?</string>
+    <string name="cancel_download_desc">Are you sure you want to cancel the model download?</string>
+    <string name="cancel_download_confirm">Yes, Cancel</string>
+    <string name="cancel_download_dismiss">No, Keep</string>
     <string name="no_model">No Model</string>
     <string name="context_window_value">%1$dK / %2$dK</string>
     <string name="ram_usage_value">%1$s / %2$d GB</string>

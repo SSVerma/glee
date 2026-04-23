@@ -90,32 +90,6 @@ class ChatViewModel(
             supportsThinking = true,
             supportsSkills = true,
             supportsVision = true
-        ),
-        ModelInfo(
-            id = "gemma-3n-e2b",
-            name = getString(Res.string.gemma_3n_e2b_name),
-            description = getString(Res.string.gemma_3n_e2b_desc),
-            bestFor = getString(Res.string.gemma_3n_e2b_best_for),
-            resourceUsage = getString(Res.string.gemma_3n_e2b_resource_usage),
-            url = "https://huggingface.co/google/gemma-3n-E2B-it-litert-lm/resolve/main/gemma-3n-E2B-it-int4.litertlm",
-            infoUrl = "https://huggingface.co/google/gemma-3n-E2B-it-litert-lm",
-            sizeGb = 3.6f,
-            supportsThinking = false,
-            supportsSkills = true,
-            supportsVision = true
-        ),
-        ModelInfo(
-            id = "phi-4",
-            name = getString(Res.string.phi_4_name),
-            description = getString(Res.string.phi_4_desc),
-            bestFor = getString(Res.string.phi_4_best_for),
-            resourceUsage = getString(Res.string.phi_4_resource_usage),
-            url = "https://huggingface.co/microsoft/phi-4-litertlm/resolve/main/phi4.litertlm",
-            infoUrl = "https://huggingface.co/microsoft/phi-4",
-            sizeGb = 2.1f,
-            supportsThinking = false,
-            supportsSkills = false,
-            supportsVision = false
         )
     )
 
@@ -250,8 +224,11 @@ class ChatViewModel(
                         }
                     }
                 }
+            } catch (e: CancellationException) {
+                updateModelStatus(model.id, ModelDownloadStatus.NotDownloaded)
+                downloadJobs.remove(model.id)
             } catch (e: Exception) {
-                updateModelStatus(model.id, ModelDownloadStatus.Error(e.message ?: "Cancelled"))
+                updateModelStatus(model.id, ModelDownloadStatus.Error(e.message ?: "Unknown error"))
                 downloadJobs.remove(model.id)
             }
         }
@@ -395,12 +372,43 @@ class ChatViewModel(
                 downloadModel(intent.model)
             }
             is ChatIntent.SelectModel -> {
+                if (intent.model.id == _uiState.value.selectedModel?.id && _uiState.value.isModelReady) {
+                    // Already loaded
+                    return
+                }
                 if (intent.model.downloadStatus == ModelDownloadStatus.Downloaded) {
                     _uiState.update { it.copy(selectedModel = intent.model) }
                     viewModelScope.launch { loadModel(intent.model) }
                 }
             }
-            is ChatIntent.CancelDownload -> cancelDownload(intent.modelId)
+            is ChatIntent.CancelDownload -> {
+                _uiState.update { 
+                    it.copy(
+                        showCancelDownloadDialog = true,
+                        modelToCancelDownloadId = intent.modelId
+                    ) 
+                }
+            }
+            ChatIntent.ConfirmCancelDownload -> {
+                val modelId = _uiState.value.modelToCancelDownloadId
+                if (modelId != null) {
+                    cancelDownload(modelId)
+                }
+                _uiState.update { 
+                    it.copy(
+                        showCancelDownloadDialog = false,
+                        modelToCancelDownloadId = null
+                    ) 
+                }
+            }
+            ChatIntent.DismissCancelDownload -> {
+                _uiState.update { 
+                    it.copy(
+                        showCancelDownloadDialog = false,
+                        modelToCancelDownloadId = null
+                    ) 
+                }
+            }
             is ChatIntent.DeleteModel -> {
                 _uiState.update { it.copy(modelToDelete = intent.model) }
             }

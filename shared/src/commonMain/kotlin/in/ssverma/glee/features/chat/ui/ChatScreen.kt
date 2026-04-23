@@ -3,6 +3,12 @@
 package `in`.ssverma.glee.features.chat.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,6 +64,10 @@ import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.cancel
+import glee.shared.generated.resources.cancel_download_confirm
+import glee.shared.generated.resources.cancel_download_desc
+import glee.shared.generated.resources.cancel_download_dismiss
+import glee.shared.generated.resources.cancel_download_title
 import glee.shared.generated.resources.delete
 import glee.shared.generated.resources.delete_conversation_desc
 import glee.shared.generated.resources.delete_conversation_title
@@ -207,14 +217,25 @@ fun ChatScreen(
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
                     Column(modifier = Modifier.width(350.dp).fillMaxHeight()) {
-                        GleeActionMenuSheet(
-                            onSelectAction = { currentActionSheet = it },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Box(modifier = Modifier.weight(1f)) {
-                            when (currentActionSheet) {
-                                ChatActionSheetType.Intelligence, ChatActionSheetType.Root -> {
+                        AnimatedContent(
+                            targetState = currentActionSheet,
+                            transitionSpec = {
+                                if (targetState != ChatActionSheetType.Root) {
+                                    (slideInHorizontally { it } + fadeIn()) togetherWith (slideOutHorizontally { -it } + fadeOut())
+                                } else {
+                                    (slideInHorizontally { -it } + fadeIn()) togetherWith (slideOutHorizontally { it } + fadeOut())
+                                }
+                            }
+                        ) { sheetType ->
+                            when (sheetType) {
+                                ChatActionSheetType.Root -> {
+                                    GleeActionMenuSheet(
+                                        onSelectAction = { currentActionSheet = it },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                ChatActionSheetType.Intelligence -> {
                                     GleeIntelligenceSheet(
                                         config = uiState.modelConfig,
                                         systemPrompt = uiState.systemPrompt,
@@ -351,6 +372,10 @@ fun ChatScreen(
                     }
                     showModelSelectionSheet = false
                 },
+                onManageModelsClick = {
+                    showModelSelectionSheet = false
+                    onModelManagement()
+                },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)
             )
         }
@@ -393,6 +418,48 @@ fun ChatScreen(
             dismissButton = {
                 TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelDeleteConversation) }) {
                     Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (uiState.showCancelDownloadDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ChatIntent.DismissCancelDownload) },
+            title = { Text(stringResource(Res.string.cancel_download_title)) },
+            text = { Text(stringResource(Res.string.cancel_download_desc)) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onIntent(ChatIntent.ConfirmCancelDownload) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.cancel_download_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onIntent(ChatIntent.DismissCancelDownload) }) {
+                    Text(stringResource(Res.string.cancel_download_dismiss))
+                }
+            }
+        )
+    }
+
+    if (uiState.showCancelDownloadDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ChatIntent.DismissCancelDownload) },
+            title = { Text(stringResource(Res.string.cancel_download_title)) },
+            text = { Text(stringResource(Res.string.cancel_download_desc)) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onIntent(ChatIntent.ConfirmCancelDownload) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.cancel_download_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onIntent(ChatIntent.DismissCancelDownload) }) {
+                    Text(stringResource(Res.string.cancel_download_dismiss))
                 }
             }
         )

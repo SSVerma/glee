@@ -43,6 +43,8 @@ data class ChatState(
     // UI state
     val showSystemPromptEditor: Boolean = false,
     val showIncognitoInfoDialog: Boolean = false,
+    val showCancelDownloadDialog: Boolean = false,
+    val modelToCancelDownloadId: String? = null,
     val systemPrompt: String = "",
     val modelToDelete: ModelInfo? = null
 )
@@ -58,6 +60,8 @@ sealed interface ChatIntent {
     data class DownloadModel(val model: ModelInfo) : ChatIntent
     data class SelectModel(val model: ModelInfo) : ChatIntent
     data class CancelDownload(val modelId: String) : ChatIntent
+    data object ConfirmCancelDownload : ChatIntent
+    data object DismissCancelDownload : ChatIntent
     data class DeleteModel(val model: ModelInfo) : ChatIntent
     data object ConfirmDeleteModel : ChatIntent
     data object CancelDeleteModel : ChatIntent
