@@ -1,11 +1,26 @@
 package `in`.ssverma.glee.features.chat.data.repository
 
+import `in`.ssverma.glee.core.database.ConversationEntity
 import `in`.ssverma.glee.core.database.GleeDatabase
 import `in`.ssverma.glee.core.database.MessageEntity
 import `in`.ssverma.glee.features.chat.domain.model.ChatMessage
+import `in`.ssverma.glee.features.chat.domain.model.Conversation
 import `in`.ssverma.glee.features.chat.domain.repository.ChatRepository
 
 class RealChatRepository(private val db: GleeDatabase) : ChatRepository {
+
+    override suspend fun getConversations(): List<Conversation> {
+        return db.chatDao().getConversations().map { it.toDomain() }
+    }
+
+    override suspend fun saveConversation(conversation: Conversation) {
+        db.chatDao().insertConversation(conversation.toEntity())
+    }
+
+    override suspend fun deleteConversation(conversationId: String) {
+        db.chatDao().deleteConversation(conversationId)
+        db.chatDao().deleteMessages(conversationId)
+    }
 
     override suspend fun getMessages(conversationId: String): List<ChatMessage> {
         return db.chatDao().getMessages(conversationId).map { it.toDomain() }
@@ -14,6 +29,20 @@ class RealChatRepository(private val db: GleeDatabase) : ChatRepository {
     override suspend fun saveMessage(conversationId: String, message: ChatMessage) {
         db.chatDao().insertMessage(message.toEntity(conversationId))
     }
+
+    private fun ConversationEntity.toDomain() = Conversation(
+        id = id,
+        title = title,
+        modelId = modelId,
+        createdAt = createdAt
+    )
+
+    private fun Conversation.toEntity() = ConversationEntity(
+        id = id,
+        title = title,
+        modelId = modelId,
+        createdAt = createdAt
+    )
 
     private fun MessageEntity.toDomain() = ChatMessage(
         id = id,

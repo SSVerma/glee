@@ -3,6 +3,7 @@ package `in`.ssverma.glee.features.chat.ui
 import androidx.compose.runtime.Immutable
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ChatMetrics
+import `in`.ssverma.glee.features.chat.domain.model.Conversation
 import `in`.ssverma.glee.features.chat.domain.model.GleeModelConfig
 import `in`.ssverma.glee.features.chat.domain.model.MessageList
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
@@ -32,9 +33,16 @@ data class ChatState(
     val themeMode: ThemeMode = ThemeMode.System,
     val isAdaptiveColorsEnabled: Boolean = true,
     val isPrivateMode: Boolean = false,
+    val shouldShowIncognitoInfo: Boolean = true,
+    
+    // Conversations
+    val conversations: List<Conversation> = emptyList(),
+    val currentConversationId: String? = null,
+    val conversationToDelete: Conversation? = null,
     
     // UI state
     val showSystemPromptEditor: Boolean = false,
+    val showIncognitoInfoDialog: Boolean = false,
     val systemPrompt: String = "",
     val modelToDelete: ModelInfo? = null
 )
@@ -59,10 +67,18 @@ sealed interface ChatIntent {
     data class SetAdaptiveColors(val enabled: Boolean) : ChatIntent
     data object ImportModel : ChatIntent
     data object TogglePrivateMode : ChatIntent
+    data object DismissIncognitoInfo : ChatIntent
+    data class SetShowIncognitoInfo(val show: Boolean) : ChatIntent
     
     // New intents
     data class UpdateSystemPrompt(val prompt: String) : ChatIntent
     data object RestoreDefaultSystemPrompt : ChatIntent
     data object ToggleSystemPromptEditor : ChatIntent
     data object StopStreaming : ChatIntent
+    
+    data class StartConversation(val conversation: Conversation) : ChatIntent
+    data class DeleteConversation(val conversation: Conversation) : ChatIntent
+    data object ConfirmDeleteConversation : ChatIntent
+    data object CancelDeleteConversation : ChatIntent
+    data object NewChat : ChatIntent
 }

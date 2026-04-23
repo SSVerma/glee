@@ -121,9 +121,13 @@ class ChatViewModel(
 
     val uiState: StateFlow<ChatState> = combine(
         _uiState,
-        chatManager.messages
-    ) { state, messages ->
-        state.copy(messages = if (state.isPrivateMode) MessageList(emptyList()) else MessageList(messages))
+        chatManager.messages,
+        chatManager.conversations
+    ) { state, messages, conversations ->
+        state.copy(
+            messages = MessageList(messages),
+            conversations = conversations
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -155,6 +159,16 @@ class ChatViewModel(
             settings.isAdaptiveColorsEnabled.collect { enabled ->
                 _uiState.update { it.copy(isAdaptiveColorsEnabled = enabled) }
             }
+        }
+
+        viewModelScope.launch {
+            settings.shouldShowIncognitoInfo.collect { shouldShow ->
+                _uiState.update { it.copy(shouldShowIncognitoInfo = shouldShow) }
+            }
+        }
+
+        viewModelScope.launch {
+            chatManager.loadConversations()
         }
 
         initializeModels()
@@ -302,7 +316,41 @@ class ChatViewModel(
         when (intent) {
             is ChatIntent.UpdateInput -> _uiState.update { it.copy(currentInput = intent.input) }
             ChatIntent.SendMessage -> sendMessage()
-            ChatIntent.ClearChat -> chatManager.clearChat()
+            ChatIntent.ClearChat -> {
+                stopStreaming()
+                chatManager.clearChat()
+                _uiState.update { it.copy(currentConversationId = null) }
+            }
+            ChatIntent.NewChat -> {
+                stopStreaming()
+                chatManager.clearChat()
+                _uiState.update { it.copy(currentConversationId = null) }
+            }
+            is ChatIntent.StartConversation -> {
+                stopStreaming()
+                _uiState.update { it.copy(isPrivateMode = false) }
+                viewModelScope.launch {
+                    chatManager.startConversation(intent.conversation)
+                    _uiState.update { it.copy(currentConversationId = intent.conversation.id) }
+                }
+            }
+            is ChatIntent.DeleteConversation -> {
+                _uiState.update { it.copy(conversationToDelete = intent.conversation) }
+            }
+            ChatIntent.ConfirmDeleteConversation -> {
+                _uiState.value.conversationToDelete?.let { conv ->
+                    viewModelScope.launch {
+                        chatManager.deleteConversation(conv.id)
+                        if (_uiState.value.currentConversationId == conv.id) {
+                            _uiState.update { it.copy(currentConversationId = null) }
+                        }
+                        _uiState.update { it.copy(conversationToDelete = null) }
+                    }
+                }
+            }
+            ChatIntent.CancelDeleteConversation -> {
+                _uiState.update { it.copy(conversationToDelete = null) }
+            }
             is ChatIntent.SelectSuggestion -> {
                 _uiState.update { it.copy(currentInput = intent.suggestion) }
                 sendMessage()
@@ -361,7 +409,33 @@ class ChatViewModel(
             is ChatIntent.SetThemeMode -> settings.setThemeMode(intent.mode)
             is ChatIntent.SetAdaptiveColors -> settings.setAdaptiveColorsEnabled(intent.enabled)
             ChatIntent.ImportModel -> { /* TODO */ }
-            ChatIntent.TogglePrivateMode -> _uiState.update { it.copy(isPrivateMode = !it.isPrivateMode) }
+            ChatIntent.TogglePrivateMode -> {
+                val isCurrentlyPrivate = _uiState.value.isPrivateMode
+                if (!isCurrentlyPrivate && _uiState.value.shouldShowIncognitoInfo) {
+                    _uiState.update { it.copy(showIncognitoInfoDialog = true) }
+                } else {
+                    stopStreaming()
+                    _uiState.update { it.copy(isPrivateMode = !isCurrentlyPrivate) }
+                    if (!isCurrentlyPrivate) {
+                        chatManager.clearChat()
+                        _uiState.update { it.copy(currentConversationId = null) }
+                    }
+                }
+            }
+            ChatIntent.DismissIncognitoInfo -> {
+                stopStreaming()
+                _uiState.update { 
+                    it.copy(
+                        showIncognitoInfoDialog = false,
+                        isPrivateMode = true
+                    ) 
+                }
+                chatManager.clearChat()
+                _uiState.update { it.copy(currentConversationId = null) }
+            }
+            is ChatIntent.SetShowIncognitoInfo -> {
+                settings.setShouldShowIncognitoInfo(intent.show)
+            }
             
             is ChatIntent.UpdateSystemPrompt -> {
                 chatManager.updateSystemPrompt(intent.prompt)
@@ -384,7 +458,9 @@ class ChatViewModel(
         streamingJob = null
         val content = _uiState.value.streamingContent
         if (content.isNotEmpty()) {
-            chatManager.commitAssistantMessage(content)
+            viewModelScope.launch {
+                chatManager.commitAssistantMessage(content, _uiState.value.isPrivateMode)
+            }
         }
         // Force immediate reset and small delay to let UI dispatcher process
         _uiState.update { it.copy(isStreaming = false, streamingContent = "") }
@@ -398,13 +474,16 @@ class ChatViewModel(
         val filesContext = _uiState.value.attachedFiles.joinToString("\n") { "[File: ${it.name}]" }
         val fullPrompt = if (filesContext.isNotEmpty()) "$filesContext\n$text" else text
 
+        val isPrivate = _uiState.value.isPrivateMode
+        val modelId = _uiState.value.selectedModel?.id ?: ""
+
         _uiState.update { it.copy(currentInput = "", attachedFiles = emptyList(), isStreaming = true, streamingContent = "") }
 
         val startTime = currentTimeMillis()
         streamingJob = viewModelScope.launch {
             try {
                 var fullResponse = ""
-                chatManager.sendMessage(fullPrompt).collect { chunk ->
+                chatManager.sendMessage(fullPrompt, modelId, isPrivate).collect { chunk ->
                     val latency = currentTimeMillis() - startTime
                     fullResponse += chunk.text
                     _uiState.update { 
@@ -418,7 +497,7 @@ class ChatViewModel(
                         )
                     }
                     if (chunk.isFinal) {
-                        chatManager.commitAssistantMessage(fullResponse)
+                        chatManager.commitAssistantMessage(fullResponse, isPrivate)
                         _uiState.update { 
                             it.copy(
                                 streamingContent = "", 

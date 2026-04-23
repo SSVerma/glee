@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.UnfoldLess
+import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,6 +40,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -71,8 +78,16 @@ fun ChatInputBar(
     onModelManagement: () -> Unit,
     onInspectorClick: () -> Unit,
     onModelSelectionClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
+    var isInputExpanded by remember { mutableStateOf(value = false) }
+
+    LaunchedEffect(input) {
+        if (input.isBlank()) {
+            isInputExpanded = false
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         if (!isModelReady && !isStreaming) {
             Card(
@@ -101,31 +116,55 @@ fun ChatInputBar(
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                BasicTextField(
-                    value = input,
-                    onValueChange = onInputChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = 40.dp),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    enabled = !isStreaming && isModelReady,
-                    decorationBox = { innerTextField ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (input.isEmpty()) {
-                                Text(
-                                    text = if (isModelReady) stringResource(Res.string.ask_glee) else stringResource(
-                                        Res.string.model_loading
-                                    ),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    BasicTextField(
+                        value = input,
+                        onValueChange = onInputChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minHeight = if (isInputExpanded) 200.dp else 40.dp),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        enabled = isModelReady,
+                        maxLines = if (isInputExpanded) 30 else 4,
+                        decorationBox = { innerTextField ->
+                            Box(
+                                contentAlignment = if (isInputExpanded) Alignment.TopStart else Alignment.CenterStart,
+                                modifier = Modifier.padding(top = if (isInputExpanded) 8.dp else 0.dp)
+                            ) {
+                                if (input.isEmpty()) {
+                                    Text(
+                                        text = if (isModelReady) stringResource(Res.string.ask_glee) else stringResource(
+                                            Res.string.model_loading
+                                        ),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.6f
+                                        )
+                                    )
+                                }
+                                innerTextField()
                             }
-                            innerTextField()
+                        }
+                    )
+
+                    if (input.isNotEmpty()) {
+                        IconButton(
+                            onClick = { isInputExpanded = !isInputExpanded },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isInputExpanded) Icons.Default.UnfoldLess else Icons.Default.UnfoldMore,
+                                contentDescription = if (isInputExpanded) "Collapse" else "Expand",
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
-                )
+                }
 
                 Spacer(Modifier.height(16.dp))
 
@@ -206,6 +245,7 @@ fun ChatInputBar(
 
                     Spacer(Modifier.width(8.dp))
 
+                    val sendButtonEnabled = (isStreaming || input.isNotBlank() || attachedFiles.isNotEmpty()) && isModelReady
                     IconButton(
                         onClick = {
                             if (isStreaming) {
@@ -214,10 +254,12 @@ fun ChatInputBar(
                                 onSend()
                             }
                         },
-                        enabled = (isStreaming || input.isNotBlank() || attachedFiles.isNotEmpty()) && isModelReady,
+                        enabled = sendButtonEnabled,
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         ),
                         modifier = Modifier.size(40.dp)
                     ) {

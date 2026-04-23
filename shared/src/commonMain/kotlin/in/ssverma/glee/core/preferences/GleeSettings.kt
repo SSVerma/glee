@@ -16,6 +16,14 @@ class GleeSettings(private val settings: ObservableSettings) {
     companion object {
         private const val KEY_THEME_MODE = "theme_mode"
         private const val KEY_ADAPTIVE_COLORS = "adaptive_colors"
+        private const val KEY_SHOW_INCOGNITO_INFO = "show_incognito_info"
+    }
+
+    @OptIn(ExperimentalSettingsApi::class)
+    val shouldShowIncognitoInfo: Flow<Boolean> = flowSettings.getBooleanFlow(KEY_SHOW_INCOGNITO_INFO, true)
+
+    fun setShouldShowIncognitoInfo(show: Boolean) {
+        settings[KEY_SHOW_INCOGNITO_INFO] = show
     }
 
     @OptIn(ExperimentalSettingsApi::class)

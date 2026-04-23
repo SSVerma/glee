@@ -2,8 +2,8 @@ package `in`.ssverma.glee.features.chat.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,7 +23,8 @@ fun ChatTopBar(
     showMenuIcon: Boolean,
     isPrivateMode: Boolean,
     onMenuClick: () -> Unit,
-    onTogglePrivate: () -> Unit
+    onTogglePrivate: () -> Unit,
+    onNewChat: () -> Unit
 ) {
     CenterAlignedTopAppBar(
         title = {
@@ -40,11 +41,14 @@ fun ChatTopBar(
             }
         },
         actions = {
+            IconButton(onClick = onNewChat) {
+                Icon(Icons.Default.Add, null)
+            }
             IconButton(onClick = onTogglePrivate) {
                 Icon(
-                    if (isPrivateMode) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    null,
-                    tint = if (isPrivateMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    imageVector = Icons.Default.Shield,
+                    contentDescription = null,
+                    tint = if (isPrivateMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }

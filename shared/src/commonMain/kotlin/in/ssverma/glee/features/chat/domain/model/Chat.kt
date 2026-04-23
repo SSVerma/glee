@@ -16,6 +16,15 @@ data class ChatMessage(
 
 @Immutable
 @Serializable
+data class Conversation(
+    val id: String,
+    val title: String,
+    val modelId: String,
+    val createdAt: Long = currentTimeMillis()
+)
+
+@Immutable
+@Serializable
 enum class ChatRole {
     User,
     Assistant,

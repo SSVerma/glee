@@ -23,6 +23,15 @@ expect object GleeDatabaseConstructor : RoomDatabaseConstructor<GleeDatabase>
 
 @Dao
 interface ChatDao {
+    @Query("SELECT * FROM conversations ORDER BY createdAt DESC")
+    suspend fun getConversations(): List<ConversationEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertConversation(conversation: ConversationEntity)
+
+    @Query("DELETE FROM conversations WHERE id = :conversationId")
+    suspend fun deleteConversation(conversationId: String)
+
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp ASC")
     suspend fun getMessages(conversationId: String): List<MessageEntity>
 

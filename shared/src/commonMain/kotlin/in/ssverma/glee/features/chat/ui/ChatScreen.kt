@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -54,6 +56,15 @@ import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.benchmark_desc
 import glee.shared.generated.resources.cancel
+import glee.shared.generated.resources.delete
+import glee.shared.generated.resources.delete_conversation_desc
+import glee.shared.generated.resources.delete_conversation_title
+import glee.shared.generated.resources.delete_model_desc
+import glee.shared.generated.resources.delete_model_title
+import glee.shared.generated.resources.done
+import glee.shared.generated.resources.dont_show_again
+import glee.shared.generated.resources.incognito_desc
+import glee.shared.generated.resources.incognito_info_title
 import glee.shared.generated.resources.model_benchmark
 import glee.shared.generated.resources.model_initializing
 import glee.shared.generated.resources.please_wait
@@ -96,10 +107,10 @@ fun ChatScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val messages by remember { derivedStateOf { uiState.messages } }
-    val isStreaming by remember { derivedStateOf { uiState.isStreaming } }
-    val streamingContent by remember { derivedStateOf { uiState.streamingContent } }
-    val reversedMessages by remember { derivedStateOf { MessageList(messages.asReversed()) } }
+    
+    val reversedMessages = remember(uiState.messages) { 
+        MessageList(uiState.messages.asReversed()) 
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -126,8 +137,17 @@ fun ChatScreen(
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
                 GleeSidebar(
+                    conversations = uiState.conversations,
+                    selectedConversationId = uiState.currentConversationId,
+                    onConversationClick = {
+                        viewModel.onIntent(ChatIntent.StartConversation(it))
+                        scope.launch { drawerState.close() }
+                    },
+                    onDeleteConversation = {
+                        viewModel.onIntent(ChatIntent.DeleteConversation(it))
+                    },
                     onNewChat = {
-                        viewModel.onIntent(ChatIntent.ClearChat)
+                        viewModel.onIntent(ChatIntent.NewChat)
                         scope.launch { drawerState.close() }
                     },
                     onModelManagement = onModelManagement,
@@ -142,7 +162,11 @@ fun ChatScreen(
             Row(modifier = Modifier.fillMaxSize()) {
                 if (isWide) {
                     GleeSidebar(
-                        onNewChat = { viewModel.onIntent(ChatIntent.ClearChat) },
+                        conversations = uiState.conversations,
+                        selectedConversationId = uiState.currentConversationId,
+                        onConversationClick = { viewModel.onIntent(ChatIntent.StartConversation(it)) },
+                        onDeleteConversation = { viewModel.onIntent(ChatIntent.DeleteConversation(it)) },
+                        onNewChat = { viewModel.onIntent(ChatIntent.NewChat) },
                         onModelManagement = onModelManagement,
                         onManageSkills = onManageSkills,
                         onSettings = onSettings,
@@ -161,10 +185,10 @@ fun ChatScreen(
                     isModelReady = uiState.isModelReady,
                     selectedModel = uiState.selectedModel,
                     attachedFiles = uiState.attachedFiles,
-                    messages = messages,
+                    messages = uiState.messages,
                     reversedMessages = reversedMessages,
-                    isStreaming = isStreaming,
-                    streamingContent = streamingContent,
+                    isStreaming = uiState.isStreaming,
+                    streamingContent = uiState.streamingContent,
                     onIntent = viewModel::onIntent,
                     onPickFile = { launcher.launch() },
                     onMenuClick = { scope.launch { drawerState.open() } },
@@ -350,6 +374,76 @@ fun ChatScreen(
             }
         )
     }
+
+    uiState.modelToDelete?.let { model ->
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ChatIntent.CancelDeleteModel) },
+            title = { Text(stringResource(Res.string.delete_model_title, model.name)) },
+            text = { Text(stringResource(Res.string.delete_model_desc)) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onIntent(ChatIntent.ConfirmDeleteModel) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelDeleteModel) }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
+
+    uiState.conversationToDelete?.let {
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ChatIntent.CancelDeleteConversation) },
+            title = { Text(stringResource(Res.string.delete_conversation_title)) },
+            text = { Text(stringResource(Res.string.delete_conversation_desc)) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.onIntent(ChatIntent.ConfirmDeleteConversation) },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(Res.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelDeleteConversation) }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (uiState.showIncognitoInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ChatIntent.DismissIncognitoInfo) },
+            title = { Text(stringResource(Res.string.incognito_info_title)) },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.incognito_desc))
+                    Spacer(Modifier.height(16.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = !uiState.shouldShowIncognitoInfo,
+                            onCheckedChange = { viewModel.onIntent(ChatIntent.SetShowIncognitoInfo(!it)) }
+                        )
+                        Text(
+                            text = stringResource(Res.string.dont_show_again),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.onIntent(ChatIntent.DismissIncognitoInfo) }) {
+                    Text(stringResource(Res.string.done))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -380,7 +474,8 @@ fun ChatContent(
                 showMenuIcon = !isWide,
                 isPrivateMode = isPrivateMode,
                 onMenuClick = onMenuClick,
-                onTogglePrivate = { onIntent(ChatIntent.TogglePrivateMode) }
+                onTogglePrivate = { onIntent(ChatIntent.TogglePrivateMode) },
+                onNewChat = { onIntent(ChatIntent.NewChat) }
             )
         },
         bottomBar = {
@@ -469,7 +564,7 @@ fun ChatContent(
 
                 item(key = "welcome_header") {
                     if (messages.isEmpty() && !isStreaming) {
-                        WelcomeHeader()
+                        WelcomeHeader(isPrivateMode = isPrivateMode)
                     } else {
                         Spacer(Modifier.height(0.dp))
                     }

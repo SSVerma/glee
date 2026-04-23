@@ -1,10 +1,6 @@
 package `in`.ssverma.glee.features.chat.ui.components
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,30 +15,44 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.executing_tool
 import `in`.ssverma.glee.features.chat.domain.model.ChatMessage
 import `in`.ssverma.glee.features.chat.domain.model.ChatRole
+import `in`.ssverma.glee.core.ui.components.GleeLoadingIndicator
 import `in`.ssverma.glee.markdown.GleeMarkdown
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun MessageBubble(
     message: ChatMessage,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val isUser = message.role == ChatRole.User
     val isTool = message.role == ChatRole.Tool
@@ -58,31 +68,78 @@ fun MessageBubble(
     val contentColor =
         if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer
 
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
+    val clipboardManager = LocalClipboardManager.current
+    var isExpanded by remember { mutableStateOf(value = false) }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                start = if (isUser) 48.dp else 0.dp,
+                end = if (isUser) 0.dp else 48.dp
+            ),
+        contentAlignment = alignment
+    ) {
         Column(
             modifier = Modifier
                 .widthIn(max = if (isUser) 600.dp else 800.dp)
                 .clip(RoundedCornerShape(20.dp))
                 .background(containerColor)
                 .padding(16.dp)
+                .animateContentSize()
         ) {
             if (isUser) {
-                Text(
-                    text = message.content,
-                    color = contentColor,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Column {
+                    Text(
+                        text = message.content,
+                        color = contentColor,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = if (isExpanded) Int.MAX_VALUE else 4,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (message.content.lines().size > 4 || message.content.length > 200) {
+                        IconButton(
+                            onClick = { isExpanded = !isExpanded },
+                            modifier = Modifier.align(Alignment.End).size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                                tint = contentColor.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
             } else {
-                GleeMarkdown(content = message.content, modifier = Modifier.fillMaxWidth())
+                Column {
+                    GleeMarkdown(content = message.content, modifier = Modifier.fillMaxWidth())
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(
+                            onClick = { clipboardManager.setText(AnnotatedString(message.content)) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copy",
+                                tint = contentColor.copy(alpha = 0.5f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ToolExecutionBubble(
+fun ToolExecutionBubble(
     content: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -104,71 +161,25 @@ private fun ToolExecutionBubble(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun StreamingBubble(
     content: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
         Surface(
-            modifier = Modifier.widthIn(max = 800.dp),
+            modifier = Modifier.widthIn(max = 800.dp).padding(end = 48.dp),
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.secondaryContainer
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (content.isEmpty()) {
-                    TypingIndicator()
+                    GleeLoadingIndicator(modifier = Modifier.size(24.dp))
                 } else {
                     GleeMarkdown(content = content, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
-    }
-}
-
-@Composable
-fun TypingIndicator() {
-    val infiniteTransition = rememberInfiniteTransition(label = "typing")
-    val dotAlpha1 by infiniteTransition.animateFloat(
-        initialValue = 0.2f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(600), repeatMode = RepeatMode.Reverse),
-        label = "dot1"
-    )
-    val dotAlpha2 by infiniteTransition.animateFloat(
-        initialValue = 0.2f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, delayMillis = 200),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dot2"
-    )
-    val dotAlpha3 by infiniteTransition.animateFloat(
-        initialValue = 0.2f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, delayMillis = 400),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dot3"
-    )
-
-    Row(
-        modifier = Modifier
-            .padding(vertical = 4.dp)
-            .heightIn(min = 24.dp), // Stable height matching text
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            Modifier.size(8.dp).alpha(dotAlpha1)
-                .background(MaterialTheme.colorScheme.primary, CircleShape)
-        )
-        Box(
-            Modifier.size(8.dp).alpha(dotAlpha2)
-                .background(MaterialTheme.colorScheme.primary, CircleShape)
-        )
-        Box(
-            Modifier.size(8.dp).alpha(dotAlpha3)
-                .background(MaterialTheme.colorScheme.primary, CircleShape)
-        )
     }
 }
