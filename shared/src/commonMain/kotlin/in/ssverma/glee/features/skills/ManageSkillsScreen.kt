@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -41,14 +42,17 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ManageSkillsScreen(
     onBack: () -> Unit,
-    viewModel: ChatViewModel = koinViewModel()
+    viewModel: ChatViewModel = koinViewModel(),
+    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
+        modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.manage_skills_title)) },
+                modifier = Modifier.statusBarsPadding(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)

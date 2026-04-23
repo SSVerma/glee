@@ -23,12 +23,17 @@ fun GleeTheme(
         else -> LightColorScheme
     }
 
+    SetSystemAppearance(!darkTheme)
+
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
         typography = GleeTypography,
         content = content
     )
 }
+
+@Composable
+expect fun SetSystemAppearance(isLight: Boolean)
 
 @Composable
 expect fun isDynamicColorSupported(): Boolean

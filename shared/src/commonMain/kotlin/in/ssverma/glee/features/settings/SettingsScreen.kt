@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,15 +75,18 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onModelManagement: () -> Unit,
     onManageSkills: () -> Unit,
-    viewModel: ChatViewModel = koinViewModel()
+    viewModel: ChatViewModel = koinViewModel(),
+    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showThemeSheet by remember { mutableStateOf(false) }
 
     Scaffold(
+        modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.settings)) },
+                modifier = Modifier.statusBarsPadding(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)

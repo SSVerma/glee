@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -81,16 +82,19 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ModelManagementScreen(
     onClose: () -> Unit,
-    viewModel: ChatViewModel = koinViewModel()
+    viewModel: ChatViewModel = koinViewModel(),
+    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val adaptiveInfo = currentWindowAdaptiveInfo()
     val isWide = adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
 
     Scaffold(
+        modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.model_management)) },
+                modifier = Modifier.statusBarsPadding(),
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(Icons.Default.Close, null)

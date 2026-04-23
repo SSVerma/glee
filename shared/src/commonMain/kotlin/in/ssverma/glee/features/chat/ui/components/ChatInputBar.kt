@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -100,28 +101,31 @@ fun ChatInputBar(
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    if (input.isEmpty()) {
-                        Text(
-                            text = if (isModelReady) stringResource(Res.string.ask_glee) else stringResource(
-                                Res.string.model_loading
-                            ),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                BasicTextField(
+                    value = input,
+                    onValueChange = onInputChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 40.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    enabled = !isStreaming && isModelReady,
+                    decorationBox = { innerTextField ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (input.isEmpty()) {
+                                Text(
+                                    text = if (isModelReady) stringResource(Res.string.ask_glee) else stringResource(
+                                        Res.string.model_loading
+                                    ),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                            innerTextField()
+                        }
                     }
-                    BasicTextField(
-                        value = input,
-                        onValueChange = onInputChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        enabled = !isStreaming && isModelReady,
-                        decorationBox = { innerTextField -> innerTextField() }
-                    )
-                }
+                )
 
                 Spacer(Modifier.height(16.dp))
 

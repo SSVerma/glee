@@ -4,6 +4,10 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 
 @Composable
+actual fun SetSystemAppearance(isLight: Boolean) {
+}
+
+@Composable
 actual fun isDynamicColorSupported(): Boolean = false
 
 @Composable

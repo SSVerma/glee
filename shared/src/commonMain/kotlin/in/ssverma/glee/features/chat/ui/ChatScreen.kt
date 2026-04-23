@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,9 +35,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -59,6 +62,8 @@ import glee.shared.generated.resources.suggestion_email
 import glee.shared.generated.resources.suggestion_recipe
 import glee.shared.generated.resources.suggestion_trip
 import glee.shared.generated.resources.suggestion_workout
+import `in`.ssverma.glee.core.ui.components.GleeLoadingOverlay
+import `in`.ssverma.glee.core.ui.components.GleeSidebar
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.MessageList
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
@@ -75,8 +80,6 @@ import `in`.ssverma.glee.features.chat.ui.components.ModelSelectionContent
 import `in`.ssverma.glee.features.chat.ui.components.StreamingBubble
 import `in`.ssverma.glee.features.chat.ui.components.SuggestionChips
 import `in`.ssverma.glee.features.chat.ui.components.WelcomeHeader
-import `in`.ssverma.glee.core.ui.components.GleeSidebar
-import `in`.ssverma.glee.core.ui.components.GleeLoadingOverlay
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -100,10 +103,10 @@ fun ChatScreen(
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    
+
     var showActionSheet by remember { mutableStateOf(false) }
     var currentActionSheet by remember { mutableStateOf(ChatActionSheetType.Root) }
-    
+
     var showModelSelectionSheet by remember { mutableStateOf(false) }
     var showBenchmarkDialog by remember { mutableStateOf(false) }
 
@@ -250,9 +253,9 @@ fun ChatScreen(
 
     if (showActionSheet) {
         ModalBottomSheet(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showActionSheet = false
-                currentActionSheet = ChatActionSheetType.Root 
+                currentActionSheet = ChatActionSheetType.Root
             },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
@@ -269,7 +272,13 @@ fun ChatScreen(
                             config = uiState.modelConfig,
                             systemPrompt = uiState.systemPrompt,
                             onConfigChange = { viewModel.onIntent(ChatIntent.UpdateModelConfig(it)) },
-                            onUpdateSystemPrompt = { viewModel.onIntent(ChatIntent.UpdateSystemPrompt(it)) },
+                            onUpdateSystemPrompt = {
+                                viewModel.onIntent(
+                                    ChatIntent.UpdateSystemPrompt(
+                                        it
+                                    )
+                                )
+                            },
                             onRestoreDefaultPrompt = { viewModel.onIntent(ChatIntent.RestoreDefaultSystemPrompt) },
                             onBack = { currentActionSheet = ChatActionSheetType.Root },
                             modifier = Modifier.padding(bottom = 32.dp)
@@ -375,7 +384,12 @@ fun ChatContent(
             )
         },
         bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
+            ) {
                 if (messages.isEmpty() && !isStreaming) {
                     val defaultSuggestions = listOf(
                         stringResource(Res.string.suggestion_trip),
@@ -412,57 +426,53 @@ fun ChatContent(
     ) { paddingValues ->
         val listState = rememberLazyListState()
 
-        // With reverseLayout = true, index 0 is the bottom.
-        val isAtBottom by remember {
-            derivedStateOf {
-                val layoutInfo = listState.layoutInfo
-                if (layoutInfo.visibleItemsInfo.isEmpty()) return@derivedStateOf true
-
-                // Check if the first visible item is the very first one (the bottom-most item)
-                listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset <= 50
-            }
-        }
-
-        // Auto-scroll logic: only if user is already at the bottom.
-        // We track both messages size and streaming content to follow the live output.
-        LaunchedEffect(messages.size, streamingContent) {
-            if (isAtBottom && (messages.isNotEmpty() || isStreaming)) {
-                listState.animateScrollToItem(0)
-            }
-        }
-
-        LazyColumn(
-            state = listState,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(
-                horizontal = if (isWide) 64.dp else 16.dp,
-                vertical = 16.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            reverseLayout = true
+                .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
         ) {
-            item(key = "bottom_spacer") { Spacer(Modifier.height(32.dp)) }
-
-            if (isStreaming) {
-                item(key = "streaming_bubble") {
-                    StreamingBubble(streamingContent)
+            // Auto-scroll logic: only if user is already at the bottom.
+            // We track both messages size and streaming content to follow the live output.
+            LaunchedEffect(messages.size, streamingContent) {
+                val isAtBottom =
+                    listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset <= 50
+                if (isAtBottom && (messages.isNotEmpty() || isStreaming)) {
+                    listState.animateScrollToItem(0)
                 }
             }
 
-            items(
-                items = reversedMessages,
-                key = { it.id }
-            ) { message ->
-                MessageBubble(message)
-            }
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    horizontal = if (isWide) 64.dp else 16.dp,
+                    vertical = 16.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                reverseLayout = true
+            ) {
+                item(key = "bottom_spacer") { Spacer(Modifier.height(32.dp)) }
 
-            item(key = "welcome_header") {
-                if (messages.isEmpty() && !isStreaming) {
-                    WelcomeHeader()
-                } else {
-                    Spacer(Modifier.height(0.dp))
+                if (isStreaming) {
+                    item(key = "streaming_bubble") {
+                        StreamingBubble(streamingContent)
+                    }
+                }
+
+                items(
+                    items = reversedMessages,
+                    key = { it.id }
+                ) { message ->
+                    MessageBubble(message)
+                }
+
+                item(key = "welcome_header") {
+                    if (messages.isEmpty() && !isStreaming) {
+                        WelcomeHeader()
+                    } else {
+                        Spacer(Modifier.height(0.dp))
+                    }
                 }
             }
         }
