@@ -14,10 +14,10 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 object HttpClientFactory {
-    fun create(): HttpClient {
+    fun create(json: Json): HttpClient {
         return HttpClient {
             install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
+                json(json)
             }
 
             install(HttpTimeout) {

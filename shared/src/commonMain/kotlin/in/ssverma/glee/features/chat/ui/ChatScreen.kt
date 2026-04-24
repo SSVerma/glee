@@ -2,10 +2,13 @@
 
 package `in`.ssverma.glee.features.chat.ui
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -22,17 +25,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
@@ -41,6 +49,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberDrawerState
@@ -48,19 +57,17 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.cancel
@@ -77,13 +84,11 @@ import glee.shared.generated.resources.done
 import glee.shared.generated.resources.dont_show_again
 import glee.shared.generated.resources.incognito_desc
 import glee.shared.generated.resources.incognito_info_title
-import glee.shared.generated.resources.model_initializing
-import glee.shared.generated.resources.please_wait
+import glee.shared.generated.resources.initializing_model_banner
 import glee.shared.generated.resources.suggestion_email
 import glee.shared.generated.resources.suggestion_recipe
 import glee.shared.generated.resources.suggestion_trip
 import glee.shared.generated.resources.suggestion_workout
-import `in`.ssverma.glee.core.ui.components.GleeLoadingOverlay
 import `in`.ssverma.glee.core.ui.components.GleeSidebar
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.MessageList
@@ -114,7 +119,7 @@ fun ChatScreen(
     onModelManagement: () -> Unit = { },
     onManageSkills: () -> Unit = { },
     onSettings: () -> Unit = { },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
@@ -141,6 +146,10 @@ fun ChatScreen(
         file?.let { viewModel.onIntent(ChatIntent.PickFile(it)) }
     }
 
+    val anyModelDownloaded = remember(uiState.availableModels) {
+        uiState.availableModels.any { it.downloadStatus == ModelDownloadStatus.Downloaded }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -159,9 +168,18 @@ fun ChatScreen(
                         viewModel.onIntent(ChatIntent.NewChat)
                         scope.launch { drawerState.close() }
                     },
-                    onModelManagement = onModelManagement,
-                    onManageSkills = onManageSkills,
-                    onSettings = onSettings
+                    onModelManagement = {
+                        onModelManagement()
+                        scope.launch { drawerState.close() }
+                    },
+                    onManageSkills = {
+                        onManageSkills()
+                        scope.launch { drawerState.close() }
+                    },
+                    onSettings = {
+                        onSettings()
+                        scope.launch { drawerState.close() }
+                    }
                 )
             }
         },
@@ -169,7 +187,7 @@ fun ChatScreen(
     ) {
         Box(modifier = modifier.fillMaxSize()) {
             Row(modifier = Modifier.fillMaxSize()) {
-                if (isWide) {
+                if (isWide && anyModelDownloaded) {
                     GleeSidebar(
                         conversations = uiState.conversations,
                         selectedConversationId = uiState.currentConversationId,
@@ -192,6 +210,8 @@ fun ChatScreen(
                     suggestions = uiState.suggestions,
                     currentInput = uiState.currentInput,
                     isModelReady = uiState.isModelReady,
+                    isInitializing = uiState.isInitializing,
+                    anyModelDownloaded = anyModelDownloaded,
                     selectedModel = uiState.selectedModel,
                     attachedFiles = uiState.attachedFiles,
                     messages = uiState.messages,
@@ -211,7 +231,7 @@ fun ChatScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                if (isWide || isMedium) {
+                if ((isWide || isMedium) && anyModelDownloaded) {
                     VerticalDivider(
                         thickness = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant
@@ -225,11 +245,16 @@ fun ChatScreen(
                                 } else {
                                     (slideInHorizontally { -it } + fadeIn()) togetherWith (slideOutHorizontally { it } + fadeOut())
                                 }
-                            }
+                            },
+                            label = "InspectorSheet"
                         ) { sheetType ->
                             when (sheetType) {
                                 ChatActionSheetType.Root -> {
                                     GleeActionMenuSheet(
+                                        isAgentic = uiState.modelConfig.isAgentic,
+                                        onToggleAgentic = {
+                                            viewModel.onIntent(ChatIntent.UpdateModelConfig(uiState.modelConfig.copy(isAgentic = it)))
+                                        },
                                         onSelectAction = { currentActionSheet = it },
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -274,24 +299,15 @@ fun ChatScreen(
                                         onToggleSkill = { id, enabled ->
                                             viewModel.onIntent(ChatIntent.ToggleSkill(id, enabled))
                                         },
+                                        onManageSkills = {
+                                            onManageSkills()
+                                        },
                                         onBack = { currentActionSheet = ChatActionSheetType.Root }
                                     )
                                 }
                             }
                         }
                     }
-                }
-            }
-
-            if (uiState.isInitializing) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                ) {
-                    GleeLoadingOverlay(
-                        title = stringResource(Res.string.model_initializing),
-                        subtitle = stringResource(Res.string.please_wait)
-                    )
                 }
             }
         }
@@ -309,6 +325,10 @@ fun ChatScreen(
                 when (currentActionSheet) {
                     ChatActionSheetType.Root -> {
                         GleeActionMenuSheet(
+                            isAgentic = uiState.modelConfig.isAgentic,
+                            onToggleAgentic = {
+                                viewModel.onIntent(ChatIntent.UpdateModelConfig(uiState.modelConfig.copy(isAgentic = it)))
+                            },
                             onSelectAction = { currentActionSheet = it }
                         )
                     }
@@ -346,6 +366,10 @@ fun ChatScreen(
                             activeSkills = uiState.activeSkills,
                             onToggleSkill = { id, enabled ->
                                 viewModel.onIntent(ChatIntent.ToggleSkill(id, enabled))
+                            },
+                            onManageSkills = {
+                                onManageSkills()
+                                showActionSheet = false
                             },
                             onBack = { currentActionSheet = ChatActionSheetType.Root },
                             modifier = Modifier.padding(bottom = 32.dp)
@@ -444,27 +468,6 @@ fun ChatScreen(
         )
     }
 
-    if (uiState.showCancelDownloadDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onIntent(ChatIntent.DismissCancelDownload) },
-            title = { Text(stringResource(Res.string.cancel_download_title)) },
-            text = { Text(stringResource(Res.string.cancel_download_desc)) },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.onIntent(ChatIntent.ConfirmCancelDownload) },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(stringResource(Res.string.cancel_download_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onIntent(ChatIntent.DismissCancelDownload) }) {
-                    Text(stringResource(Res.string.cancel_download_dismiss))
-                }
-            }
-        )
-    }
-
     if (uiState.showIncognitoInfoDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.onIntent(ChatIntent.DismissIncognitoInfo) },
@@ -500,6 +503,8 @@ fun ChatContent(
     suggestions: List<String>,
     currentInput: String,
     isModelReady: Boolean,
+    isInitializing: Boolean,
+    anyModelDownloaded: Boolean,
     selectedModel: ModelInfo?,
     attachedFiles: List<AttachedFile>,
     messages: MessageList,
@@ -523,12 +528,13 @@ fun ChatContent(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             ChatTopBar(
-                showMenuIcon = !isWide,
+                showMenuIcon = !isWide && anyModelDownloaded,
                 isPrivateMode = isPrivateMode,
                 onMenuClick = onMenuClick,
                 onTogglePrivate = { onIntent(ChatIntent.TogglePrivateMode) },
                 onNewChat = { onIntent(ChatIntent.NewChat) },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                actionsEnabled = anyModelDownloaded
             )
         },
         bottomBar = {
@@ -537,7 +543,7 @@ fun ChatContent(
                     .fillMaxWidth()
                     .imePadding()
             ) {
-                if (messages.isEmpty() && !isStreaming) {
+                if (messages.isEmpty() && !isStreaming && isModelReady) {
                     val defaultSuggestions = listOf(
                         stringResource(Res.string.suggestion_trip),
                         stringResource(Res.string.suggestion_recipe),
@@ -552,6 +558,14 @@ fun ChatContent(
                     )
                 }
 
+                AnimatedVisibility(
+                    visible = isInitializing,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    InitializingInfoBar()
+                }
+
                 ChatInputBar(
                     input = currentInput,
                     isStreaming = isStreaming,
@@ -563,7 +577,6 @@ fun ChatContent(
                     onStop = { onIntent(ChatIntent.StopStreaming) },
                     onPickFile = onPickFile,
                     onRemoveFile = { onIntent(ChatIntent.RemoveFile(it)) },
-                    onModelManagement = onModelManagement,
                     onInspectorClick = onInspectorClick,
                     onModelSelectionClick = onModelSelectionClick,
                     modifier = Modifier.fillMaxWidth()
@@ -579,8 +592,7 @@ fun ChatContent(
                 .padding(paddingValues)
                 .consumeWindowInsets(paddingValues)
         ) {
-            // Auto-scroll logic: only if user is already at the bottom.
-            // We track both messages size and streaming content to follow the live output.
+            // Auto-scroll logic
             LaunchedEffect(messages.size, streamingContent) {
                 val isAtBottom =
                     listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset <= 50
@@ -616,12 +628,46 @@ fun ChatContent(
 
                 item(key = "welcome_header") {
                     if (messages.isEmpty() && !isStreaming) {
-                        WelcomeHeader(isPrivateMode = isPrivateMode)
+                        WelcomeHeader(
+                            isPrivateMode = isPrivateMode,
+                            isModelDownloaded = anyModelDownloaded,
+                            onDownloadClick = onModelManagement
+                        )
                     } else {
                         Spacer(Modifier.height(0.dp))
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun InitializingInfoBar() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = stringResource(Res.string.initializing_model_banner),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         }
     }
 }

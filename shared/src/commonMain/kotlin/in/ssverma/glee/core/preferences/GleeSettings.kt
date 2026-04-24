@@ -21,6 +21,7 @@ class GleeSettings(private val settings: ObservableSettings) {
         private const val KEY_MODEL_TEMP = "model_temp"
         private const val KEY_MODEL_TOP_K = "model_top_k"
         private const val KEY_MODEL_USE_GPU = "model_use_gpu"
+        private const val KEY_MODEL_IS_AGENTIC = "model_is_agentic"
     }
 
     @OptIn(ExperimentalSettingsApi::class)
@@ -49,6 +50,13 @@ class GleeSettings(private val settings: ObservableSettings) {
 
     fun setUseGpu(useGpu: Boolean) {
         settings[KEY_MODEL_USE_GPU] = useGpu
+    }
+
+    @OptIn(ExperimentalSettingsApi::class)
+    val isAgentic: Flow<Boolean> = flowSettings.getBooleanFlow(KEY_MODEL_IS_AGENTIC, false)
+
+    fun setIsAgentic(isAgentic: Boolean) {
+        settings[KEY_MODEL_IS_AGENTIC] = isAgentic
     }
 
     @OptIn(ExperimentalSettingsApi::class)

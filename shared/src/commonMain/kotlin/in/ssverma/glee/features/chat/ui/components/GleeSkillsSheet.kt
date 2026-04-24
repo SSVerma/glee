@@ -31,12 +31,19 @@ import glee.shared.generated.resources.active_skills
 import glee.shared.generated.resources.skills
 import org.jetbrains.compose.resources.stringResource
 
+import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
+import glee.shared.generated.resources.manage_skills
+import glee.shared.generated.resources.manage_skills_desc
+import org.jetbrains.compose.resources.stringResource
+
 @Composable
 fun GleeSkillsSheet(
     activeSkills: Map<String, Boolean>,
     onToggleSkill: (String, Boolean) -> Unit,
+    onManageSkills: () -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
@@ -65,21 +72,45 @@ fun GleeSkillsSheet(
             )
         }
 
-        Text(
-            text = stringResource(Res.string.active_skills).uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.2.sp
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = stringResource(Res.string.active_skills).uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.2.sp
+            )
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            activeSkills.forEach { (id, enabled) ->
-                SkillToggleItem(
-                    name = id.replace("_", " ").uppercase(),
-                    isEnabled = enabled,
-                    onToggle = { onToggleSkill(id, it) }
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                activeSkills.forEach { (id, enabled) ->
+                    SkillToggleItem(
+                        name = id.replace("_", " ").uppercase(),
+                        isEnabled = enabled,
+                        onToggle = { onToggleSkill(id, it) }
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = "Skill Settings",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = stringResource(Res.string.manage_skills_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onManageSkills,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(stringResource(Res.string.manage_skills), fontWeight = FontWeight.Bold)
             }
         }
     }

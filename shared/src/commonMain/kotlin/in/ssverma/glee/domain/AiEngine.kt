@@ -1,22 +1,25 @@
-package `in`.ssverma.glee.features.chat.data.local
+package `in`.ssverma.glee.domain
 
 import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
-import `in`.ssverma.glee.features.chat.domain.model.ToolCall
 import `in`.ssverma.glee.features.chat.domain.model.AiSkill
+import `in`.ssverma.glee.features.chat.domain.model.ToolCall
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Common interface for the LiteRT-LM (Gemma) model engine.
+ * Common interface for AI model engines.
  */
-expect class LiteRtEngine() {
-
+interface AiEngine {
     suspend fun loadModel(config: ModelConfig): Result<Unit>
 
     fun generateResponse(prompt: String): Flow<AiChunk>
 
+    fun setSystemPrompt(prompt: String)
+
     fun setSkills(skills: List<AiSkill>)
 
-    fun close()
+    suspend fun clearConversation()
+
+    suspend fun close()
 }
 
 /**

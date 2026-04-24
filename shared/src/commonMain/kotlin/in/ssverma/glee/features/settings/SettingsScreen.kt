@@ -1,17 +1,20 @@
 package `in`.ssverma.glee.features.settings
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,20 +23,18 @@ import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ModelTraining
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,14 +44,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import glee.shared.generated.resources.Res
+import glee.shared.generated.resources.about
 import glee.shared.generated.resources.adaptive_colors
-import glee.shared.generated.resources.adaptive_colors_desc
 import glee.shared.generated.resources.appearance
 import glee.shared.generated.resources.dark
-import glee.shared.generated.resources.enter_token_placeholder
-import glee.shared.generated.resources.hugging_face_token
 import glee.shared.generated.resources.light
 import glee.shared.generated.resources.manage_skills
 import glee.shared.generated.resources.manage_skills_desc
@@ -62,7 +69,8 @@ import glee.shared.generated.resources.system_default
 import glee.shared.generated.resources.theme
 import glee.shared.generated.resources.version
 import glee.shared.generated.resources.version_desc
-import glee.shared.generated.resources.about
+import `in`.ssverma.glee.core.common.platform.PlatformType
+import `in`.ssverma.glee.core.common.platform.getPlatformType
 import `in`.ssverma.glee.features.chat.domain.model.ThemeMode
 import `in`.ssverma.glee.features.chat.ui.ChatIntent
 import `in`.ssverma.glee.features.chat.ui.ChatViewModel
@@ -76,10 +84,11 @@ fun SettingsScreen(
     onModelManagement: () -> Unit,
     onManageSkills: () -> Unit,
     viewModel: ChatViewModel = koinViewModel(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showThemeSheet by remember { mutableStateOf(false) }
+    val platformType = remember { getPlatformType() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -110,25 +119,19 @@ fun SettingsScreen(
                     icon = Icons.Default.Palette,
                     onClick = { showThemeSheet = true }
                 )
-                SettingsToggleItem(
-                    title = stringResource(Res.string.adaptive_colors),
-                    subtitle = stringResource(Res.string.adaptive_colors_desc),
-                    isEnabled = uiState.isAdaptiveColorsEnabled,
-                    onToggle = { viewModel.onIntent(ChatIntent.SetAdaptiveColors(it)) }
-                )
+
+                if (platformType == PlatformType.Android) {
+                    SettingsToggleItem(
+                        title = stringResource(Res.string.adaptive_colors),
+                        subtitle = "Sync Glee colors with your system wallpaper.",
+                        isEnabled = uiState.isAdaptiveColorsEnabled,
+                        onToggle = { viewModel.onIntent(ChatIntent.SetAdaptiveColors(it)) }
+                    )
+                }
             }
 
             item {
                 SettingsHeader(stringResource(Res.string.model_and_intelligence))
-                
-                OutlinedTextField(
-                    value = uiState.hfToken,
-                    onValueChange = { viewModel.onIntent(ChatIntent.UpdateHfToken(it)) },
-                    label = { Text(stringResource(Res.string.hugging_face_token)) },
-                    placeholder = { Text(stringResource(Res.string.enter_token_placeholder)) },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    shape = RoundedCornerShape(12.dp)
-                )
 
                 SettingsClickItem(
                     title = stringResource(Res.string.model_management),
@@ -143,22 +146,29 @@ fun SettingsScreen(
                     onClick = onManageSkills
                 )
             }
-            
+
             item {
                 SettingsHeader(stringResource(Res.string.about))
                 SettingsClickItem(
                     title = stringResource(Res.string.version),
                     subtitle = stringResource(Res.string.version_desc),
                     icon = Icons.Default.Info,
+                    showChevron = false,
                     onClick = { }
                 )
+
+                DeveloperCard(
+                    modifier = Modifier.padding(16.dp)
+                )
+
+                Spacer(Modifier.height(32.dp))
             }
         }
 
         if (showThemeSheet) {
             ThemeSelectionBottomSheet(
                 currentMode = uiState.themeMode,
-                onModeSelected = { 
+                onModeSelected = {
                     viewModel.onIntent(ChatIntent.SetThemeMode(it))
                     showThemeSheet = false
                 },
@@ -170,10 +180,102 @@ fun SettingsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun DeveloperCard(modifier: Modifier = Modifier) {
+    val uriHandler = LocalUriHandler.current
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val containerColor = MaterialTheme.colorScheme.surface
+
+    OutlinedCard(
+        onClick = { uriHandler.openUri("https://x.com/ssverma1916") },
+        modifier = modifier
+            .fillMaxWidth()
+            .drawBehind {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(primaryColor.copy(alpha = 0.12f), Color.Transparent),
+                        center = center,
+                        radius = size.maxDimension * 0.8f
+                    ),
+                    radius = size.maxDimension / 2,
+                    center = center
+                )
+            },
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f)),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = containerColor
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary
+                            )
+                        )
+                    )
+                    .padding(2.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                AsyncImage(
+                    model = "https://pbs.twimg.com/profile_images/1807349302164934656/xELoSQEH_400x400.jpg",
+                    contentDescription = "SS Verma",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(CircleShape)
+                )
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            Column {
+                Text(
+                    text = "Crafted with ❤️ by",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "SS Verma",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary
+                            )
+                        ),
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Follow",
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun ThemeSelectionBottomSheet(
     currentMode: ThemeMode,
     onModeSelected: (ThemeMode) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 32.dp)) {
@@ -205,7 +307,7 @@ fun ThemeSelectionBottomSheet(
 private fun ThemeOption(
     title: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -214,7 +316,11 @@ private fun ThemeOption(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge
+        )
         RadioButton(selected = isSelected, onClick = null)
     }
 }
@@ -225,7 +331,7 @@ private fun SettingsHeader(title: String) {
         text = title,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(16.dp)
+        modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 8.dp)
     )
 }
 
@@ -234,7 +340,7 @@ private fun SettingsToggleItem(
     title: String,
     subtitle: String,
     isEnabled: Boolean,
-    onToggle: (Boolean) -> Unit
+    onToggle: (Boolean) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -245,7 +351,11 @@ private fun SettingsToggleItem(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Switch(checked = isEnabled, onCheckedChange = onToggle)
     }
@@ -256,7 +366,8 @@ private fun SettingsClickItem(
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
+    showChevron: Boolean = true,
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -265,12 +376,23 @@ private fun SettingsClickItem(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(
+            icon,
+            null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-        Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outlineVariant)
+        if (showChevron) {
+            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 }

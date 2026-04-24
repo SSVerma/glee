@@ -38,7 +38,8 @@ data class GleeModelConfig(
     val topK: Int = 40,
     val topP: Float = 0.95f,
     val useGpu: Boolean = false,
-    val enableThinking: Boolean = false
+    val enableThinking: Boolean = false,
+    val isAgentic: Boolean = false
 )
 
 @Immutable

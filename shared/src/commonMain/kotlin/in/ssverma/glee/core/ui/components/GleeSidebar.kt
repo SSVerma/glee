@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
@@ -35,7 +34,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.app_name
-import glee.shared.generated.resources.help
 import glee.shared.generated.resources.manage_skills
 import glee.shared.generated.resources.model_management
 import glee.shared.generated.resources.models
@@ -135,12 +133,6 @@ fun GleeSidebar(
                 label = stringResource(Res.string.settings),
                 onClick = onSettings
             )
-
-            SidebarActionItem(
-                icon = Icons.AutoMirrored.Filled.HelpOutline,
-                label = stringResource(Res.string.help),
-                onClick = { }
-            )
         }
     }
 }
@@ -155,7 +147,7 @@ private fun ConversationItem(
     Surface(
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
-        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -165,14 +157,15 @@ private fun ConversationItem(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Chat,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(12.dp))
             Text(
                 text = conversation.title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -181,7 +174,7 @@ private fun ConversationItem(
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
                     contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
             }

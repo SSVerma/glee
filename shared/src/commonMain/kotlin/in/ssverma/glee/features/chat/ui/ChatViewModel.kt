@@ -4,10 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import `in`.ssverma.glee.features.chat.data.remote.DownloadStatus
 import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
-import `in`.ssverma.glee.core.common.platform.FileSystem
+import `in`.ssverma.glee.core.common.platform.FileSystem as GleeFileSystem
 import `in`.ssverma.glee.features.chat.domain.usecase.AiChatManager
-import `in`.ssverma.glee.features.chat.data.local.LiteRtEngine
-import `in`.ssverma.glee.features.chat.domain.usecase.LocalFileSystemSkill
+import `in`.ssverma.glee.domain.AiEngine
 import `in`.ssverma.glee.features.chat.domain.model.*
 import `in`.ssverma.glee.core.common.currentTimeMillis
 import `in`.ssverma.glee.core.common.platform.getSystemMetrics
@@ -49,11 +48,11 @@ import kotlinx.coroutines.CancellationException
 
 class ChatViewModel(
     private val chatManager: AiChatManager,
-    private val fileSystemSkill: LocalFileSystemSkill,
+    private val skills: List<AiSkill>,
     private val modelDownloader: ModelDownloader,
-    private val engine: LiteRtEngine,
+    private val engine: AiEngine,
     private val settings: GleeSettings,
-    private val fileSystem: FileSystem,
+    private val fileSystem: GleeFileSystem,
     private val appDataDir: Path
 ) : ViewModel() {
 
@@ -109,7 +108,10 @@ class ChatViewModel(
     )
 
     init {
-        chatManager.registerSkill(fileSystemSkill)
+        val initialSkills = skills.associate { it.id to true }
+        _uiState.update { it.copy(activeSkills = initialSkills) }
+
+        skills.forEach { chatManager.registerSkill(it) }
         viewModelScope.launch {
             while (true) {
                 updateMetrics()
@@ -146,8 +148,9 @@ class ChatViewModel(
                 settings.systemPrompt,
                 settings.temperature,
                 settings.topK,
-                settings.useGpu
-            ) { systemPrompt, temp, topK, useGpu ->
+                settings.useGpu,
+                settings.isAgentic
+            ) { systemPrompt, temp, topK, useGpu, isAgentic ->
                 val defaultPrompt = getString(Res.string.default_system_prompt)
                 _uiState.update { 
                     it.copy(
@@ -155,7 +158,8 @@ class ChatViewModel(
                         modelConfig = it.modelConfig.copy(
                             temperature = temp,
                             topK = topK,
-                            useGpu = useGpu
+                            useGpu = useGpu,
+                            isAgentic = isAgentic
                         )
                     )
                 }
@@ -211,11 +215,11 @@ class ChatViewModel(
                             updateModelStatus(model.id, ModelDownloadStatus.Downloaded)
                             downloadJobs.remove(model.id)
                             
-                            // Load the model if it's the one we currently have "selected" or if nothing is ready
-                            val currentState = _uiState.value
-                            if (currentState.selectedModel?.id == model.id || !currentState.isModelReady) {
-                                _uiState.update { it.copy(selectedModel = it.availableModels.find { m -> m.id == model.id }) }
-                                _uiState.value.selectedModel?.let { loadModel(it) }
+                            // Immediately load the newly downloaded model to enable the chat box
+                            _uiState.update { it.copy(selectedModel = it.availableModels.find { m -> m.id == model.id }) }
+                            val newSelected = _uiState.value.selectedModel
+                            if (newSelected != null) {
+                                viewModelScope.launch { loadModel(newSelected) }
                             }
                         }
                         is DownloadStatus.Error -> {
@@ -249,8 +253,15 @@ class ChatViewModel(
             runCatching { 
                 fileSystem.delete(targetPath)
                 updateModelStatus(model.id, ModelDownloadStatus.NotDownloaded)
-                if (_uiState.value.selectedModel?.id == model.id) {
-                    _uiState.update { it.copy(isModelReady = false, selectedModel = null) }
+                
+                val anyLeft = getAllModels().any { 
+                    val p = appDataDir.resolve("${it.id}.litertlm")
+                    fileSystem.exists(p)
+                }
+
+                if (!anyLeft || _uiState.value.selectedModel?.id == model.id) {
+                    _uiState.update { it.copy(isModelReady = false, selectedModel = null, currentConversationId = null) }
+                    chatManager.clearChat()
                 }
             }
         }
@@ -311,18 +322,20 @@ class ChatViewModel(
         }
     }
 
+    fun getSkills(): List<AiSkill> = skills
+
     fun onIntent(intent: ChatIntent) {
         when (intent) {
             is ChatIntent.UpdateInput -> _uiState.update { it.copy(currentInput = intent.input) }
             ChatIntent.SendMessage -> sendMessage()
             ChatIntent.ClearChat -> {
                 stopStreaming()
-                chatManager.clearChat()
+                viewModelScope.launch { chatManager.clearChat() }
                 _uiState.update { it.copy(currentConversationId = null) }
             }
             ChatIntent.NewChat -> {
                 stopStreaming()
-                chatManager.clearChat()
+                viewModelScope.launch { chatManager.clearChat() }
                 _uiState.update { it.copy(currentConversationId = null) }
             }
             is ChatIntent.StartConversation -> {
@@ -438,7 +451,7 @@ class ChatViewModel(
                     stopStreaming()
                     _uiState.update { it.copy(isPrivateMode = !isCurrentlyPrivate) }
                     if (!isCurrentlyPrivate) {
-                        chatManager.clearChat()
+                        viewModelScope.launch { chatManager.clearChat() }
                         _uiState.update { it.copy(currentConversationId = null) }
                     }
                 }
@@ -451,7 +464,7 @@ class ChatViewModel(
                         isPrivateMode = true
                     ) 
                 }
-                chatManager.clearChat()
+                viewModelScope.launch { chatManager.clearChat() }
                 _uiState.update { it.copy(currentConversationId = null) }
             }
             is ChatIntent.SetShowIncognitoInfo -> {
@@ -463,16 +476,21 @@ class ChatViewModel(
             }
             ChatIntent.SaveIntelligenceConfig -> {
                 val state = _uiState.value
+                val previousUseGpu = _uiState.value.modelConfig.useGpu
+                
                 settings.setSystemPrompt(state.systemPrompt)
                 settings.setTemperature(state.modelConfig.temperature)
                 settings.setTopK(state.modelConfig.topK)
                 settings.setUseGpu(state.modelConfig.useGpu)
+                settings.setIsAgentic(state.modelConfig.isAgentic)
                 chatManager.updateSystemPrompt(state.systemPrompt)
 
-                // Apply changes to the engine
-                state.selectedModel?.let { model ->
-                    if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
-                        viewModelScope.launch { loadModel(model) }
+                // Only reload model if engine-level config (like GPU) changed
+                if (previousUseGpu != state.modelConfig.useGpu) {
+                    state.selectedModel?.let { model ->
+                        if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
+                            viewModelScope.launch { loadModel(model) }
+                        }
                     }
                 }
             }
@@ -511,6 +529,7 @@ class ChatViewModel(
 
         val isPrivate = _uiState.value.isPrivateMode
         val modelId = _uiState.value.selectedModel?.id ?: ""
+        val isAgentic = _uiState.value.modelConfig.isAgentic
 
         _uiState.update { it.copy(currentInput = "", attachedFiles = emptyList(), isStreaming = true, streamingContent = "") }
 
@@ -518,16 +537,20 @@ class ChatViewModel(
         streamingJob = viewModelScope.launch {
             try {
                 var fullResponse = ""
-                chatManager.sendMessage(fullPrompt, modelId, isPrivate).collect { chunk ->
+                chatManager.sendMessage(fullPrompt, modelId, isPrivate, isAgentic).collect { chunk ->
                     val latency = currentTimeMillis() - startTime
                     fullResponse += chunk.text
+                    
+                    // Estimate tokens: roughly 1 token per 4 chars for English, plus prompt overhead
+                    val estimatedTokens = (fullResponse.length / 4) + (fullPrompt.length / 4)
+                    
                     _uiState.update { 
                         it.copy(
                             streamingContent = fullResponse,
                             isStreaming = !chunk.isFinal,
                             metrics = it.metrics.copy(
                                 latencyMs = latency,
-                                contextUsed = it.metrics.contextUsed + 1
+                                contextUsed = estimatedTokens
                             )
                         )
                     }

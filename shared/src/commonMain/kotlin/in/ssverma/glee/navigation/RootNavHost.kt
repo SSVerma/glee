@@ -1,7 +1,6 @@
 package `in`.ssverma.glee.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
@@ -9,7 +8,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
-import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.ui.ChatScreen
 import `in`.ssverma.glee.features.chat.ui.ChatViewModel
 import `in`.ssverma.glee.features.models.ModelManagementScreen
@@ -37,8 +35,6 @@ fun RootNavHost(
     viewModel: ChatViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    
     val backStack = rememberNavBackStack(configuration = GleeNavConfig, Splash)
 
     NavDisplay(
@@ -49,11 +45,7 @@ fun RootNavHost(
             Splash -> NavEntry(key) {
                 SplashScreen(onSplashComplete = {
                     backStack.clear()
-                    if (uiState.availableModels.any { it.downloadStatus == ModelDownloadStatus.Downloaded }) {
-                        backStack.add(Chat)
-                    } else {
-                        backStack.add(ModelManagement)
-                    }
+                    backStack.add(Chat)
                 })
             }
             ModelManagement -> NavEntry(key) {

@@ -1,4 +1,4 @@
-package `in`.ssverma.glee.features.chat.data.local
+package `in`.ssverma.glee.domain
 
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
@@ -17,12 +17,14 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-actual class LiteRtEngine actual constructor() {
+actual class LiteRtEngine actual constructor() : AiEngine {
     private var engine: Engine? = null
     private var conversation: Conversation? = null
+    private var systemPrompt: String = ""
+    private var isSystemPromptSent: Boolean = false
     private val mutex = Mutex()
 
-    actual suspend fun loadModel(config: ModelConfig): Result<Unit> = mutex.withLock {
+    actual override suspend fun loadModel(config: ModelConfig): Result<Unit> = mutex.withLock {
         withContext(Dispatchers.Default) {
             runCatching {
                 val file = java.io.File(config.modelPath)
@@ -81,82 +83,88 @@ actual class LiteRtEngine actual constructor() {
         return e
     }
 
-    actual fun generateResponse(prompt: String): Flow<AiChunk> = flow {
-        val conv = conversation
-        if (conv == null) {
-            Log.e("LiteRtEngine", "Conversation is null during generation request")
-            emit(
-                AiChunk(
-                    text = "Error: Engine not ready. Please try reloading the model.",
-                    isFinal = false
-                )
-            )
-            emit(AiChunk(text = "", isFinal = true))
-            return@flow
+    actual override suspend fun clearConversation() = mutex.withLock {
+        withContext(Dispatchers.Default) {
+            try {
+                conversation?.close()
+            } catch (e: Exception) {
+                Log.e("LiteRtEngine", "Error closing conversation", e)
+            }
+            conversation = engine?.createConversation()
+            isSystemPromptSent = false
         }
+    }
 
-        Log.d("LiteRtEngine", "Generating response for prompt length: ${prompt.length}")
-
-        try {
-            val cleanPrompt = prompt.trim()
-            if (cleanPrompt.isEmpty()) {
-                emit(AiChunk(text = "Please enter a valid message.", isFinal = true))
-                return@flow
-            }
-
-            // Gemma 4 specific markers
-            val formattedPrompt = if (cleanPrompt.contains("<start_of_turn>")) cleanPrompt else {
-                "<start_of_turn>user\n$cleanPrompt<end_of_turn>\n<start_of_turn>model\n"
-            }
-
-            var receivedChunks = 0
-            conv.sendMessageAsync(formattedPrompt).collect { message ->
-                receivedChunks++
-                val text = message.contents.contents
-                    .filterIsInstance<Content.Text>()
-                    .joinToString("") { it.text }
-
-                if (text.isNotEmpty()) {
-                    Log.v("LiteRtEngine", "Emitting chunk $receivedChunks")
-                    emit(AiChunk(text = text, isFinal = false))
-                }
-            }
-
-            if (receivedChunks == 0) {
-                Log.w(
-                    "LiteRtEngine",
-                    "Model produced zero chunks. This often indicates a native backend failure or low memory."
-                )
+    actual override fun generateResponse(prompt: String): Flow<AiChunk> = flow {
+        mutex.withLock {
+            val conv = conversation
+            if (conv == null) {
+                Log.e("LiteRtEngine", "Conversation is null during generation request")
                 emit(
                     AiChunk(
-                        text = "The model produced no response. Try toggling GPU off in settings.",
+                        text = "Error: Engine not ready. Please try reloading the model.",
                         isFinal = false
                     )
                 )
+                emit(AiChunk(text = "", isFinal = true))
+                return@withLock
             }
 
-            Log.d("LiteRtEngine", "Response generation complete. Total chunks: $receivedChunks")
-        } catch (e: LiteRtLmJniException) {
-            Log.e("LiteRtEngine", "JNI Error during inference: ${e.message}", e)
-            val msg = if (e.message?.contains("OpenCL") == true) {
-                "Hardware Error: GPU not supported (No OpenCL). Please turn OFF GPU in the Tools menu."
-            } else {
-                "Engine Error: ${e.message}. Try switching to CPU."
+            try {
+                val cleanPrompt = prompt.trim()
+                if (cleanPrompt.isEmpty()) {
+                    emit(AiChunk(text = "Please enter a valid message.", isFinal = true))
+                    return@withLock
+                }
+
+                // Optimization: Only send system prompt on the first turn of a conversation.
+                // LiteRT's Conversation object maintains history internally.
+                val formattedPrompt = buildString {
+                    if (systemPrompt.isNotEmpty() && !isSystemPromptSent) {
+                        append("<start_of_turn>system\n$systemPrompt<end_of_turn>\n")
+                        isSystemPromptSent = true
+                    }
+                    append("<start_of_turn>user\n$cleanPrompt<end_of_turn>\n<start_of_turn>model\n")
+                }
+
+                var receivedChunks = 0
+                conv.sendMessageAsync(formattedPrompt).collect { message ->
+                    receivedChunks++
+                    val text = message.contents.contents
+                        .filterIsInstance<Content.Text>()
+                        .joinToString("") { it.text }
+
+                    if (text.isNotEmpty()) {
+                        emit(AiChunk(text = text, isFinal = false))
+                    }
+                }
+                
+                if (receivedChunks == 0) {
+                    emit(AiChunk(text = "The model produced no response.", isFinal = false))
+                }
+            } catch (e: Exception) {
+                Log.e("LiteRtEngine", "Error during generation", e)
+                emit(AiChunk(text = "Error: ${e.message}", isFinal = false))
             }
-            emit(AiChunk(text = msg, isFinal = false))
-        } catch (e: Exception) {
-            Log.e("LiteRtEngine", "Error during generation flow", e)
-            emit(AiChunk(text = "System Error: ${e.message}", isFinal = false))
+            emit(AiChunk(text = "", isFinal = true))
         }
-        emit(AiChunk(text = "", isFinal = true))
     }.flowOn(Dispatchers.Default)
 
-    actual fun setSkills(skills: List<AiSkill>) {
-        // bridge logic
+    actual override fun setSystemPrompt(prompt: String) {
+        if (systemPrompt != prompt) {
+            systemPrompt = prompt
+            // We can't easily update system prompt in an active LiteRT conversation 
+            // without specialized logic, so we reset to ensure the new prompt is used.
+            isSystemPromptSent = false
+        }
     }
 
-    actual fun close() {
-        // loading already calls closeInternal
+    actual override fun setSkills(skills: List<AiSkill>) {
+        // Implementation for passing structured tool definitions to the engine if supported by LiteRT
+    }
+
+    actual override suspend fun close() = mutex.withLock {
+        closeInternal()
     }
 
     private fun closeInternal() {

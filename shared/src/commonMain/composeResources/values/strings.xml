@@ -50,6 +50,8 @@
     <string name="temperature_info">Controls the randomness of the model's output. Higher values make the output more creative but potentially less coherent.</string>
     <string name="top_k_info">Limits the model's choices to the top K most likely next words. Lower values reduce randomness and help keep the output more focused.</string>
     <string name="use_gpu_info">Enables GPU acceleration for faster inference. May increase battery usage on mobile devices.</string>
+    <string name="agentic_mode">Agentic Mode (Alpha)</string>
+    <string name="agentic_mode_info">Enables Glee to use tools and reasoning steps to solve complex tasks. This may be slower as it involves multiple internal reasoning turns.</string>
     <string name="system_prompt_info">A persistent instruction that guides the model's behavior, personality, and constraints throughout the entire conversation.</string>
     <string name="done">Done</string>
     <string name="ai_disclosure">Glee can make mistakes. Consider verifying important information.</string>
@@ -111,6 +113,11 @@
     <string name="loading_model_status">Loading %1$s…</string>
     <string name="model_ready_status">Model ready.</string>
     <string name="model_load_failed_status">Model load failed.</string>
+    <string name="download_model_banner_title">Download Glee Intelligence</string>
+    <string name="download_model_banner_desc">Glee runs entirely on your device for maximum privacy. Download a model once to start chatting offline. (Recommended: ~2.6GB)</string>
+    <string name="get_started">Get Started</string>
+    <string name="initializing_model_banner">Waking up Glee Intelligence…</string>
+    <string name="initializing_model_desc">This usually takes a few seconds as we load the AI into your device memory.</string>
     <string name="gemma_4_e2b_name">Gemma 4 E2B</string>
     <string name="gemma_4_e2b_desc">State-of-the-art reasoning for compact devices. Best for coding, high-fidelity chat, and technical logic.</string>
     <string name="gemma_4_e2b_best_for">Coding assistance, technical writing, complex reasoning.</string>

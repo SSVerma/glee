@@ -26,7 +26,8 @@ fun ChatTopBar(
     onMenuClick: () -> Unit,
     onTogglePrivate: () -> Unit,
     onNewChat: () -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior? = null,
+    actionsEnabled: Boolean = true
 ) {
     CenterAlignedTopAppBar(
         scrollBehavior = scrollBehavior,
@@ -44,15 +45,17 @@ fun ChatTopBar(
             }
         },
         actions = {
-            IconButton(onClick = onNewChat) {
-                Icon(Icons.Default.Add, null)
-            }
-            IconButton(onClick = onTogglePrivate) {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = if (isPrivateMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
+            if (actionsEnabled) {
+                IconButton(onClick = onNewChat) {
+                    Icon(Icons.Default.Add, null)
+                }
+                IconButton(onClick = onTogglePrivate) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = if (isPrivateMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
             }
         }
     )

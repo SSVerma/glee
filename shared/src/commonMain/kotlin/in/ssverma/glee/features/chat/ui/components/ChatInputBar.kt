@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -49,6 +48,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import glee.shared.generated.resources.Res
@@ -76,12 +79,12 @@ fun ChatInputBar(
     onStop: () -> Unit,
     onPickFile: () -> Unit,
     onRemoveFile: (AttachedFile) -> Unit,
-    onModelManagement: () -> Unit,
     onInspectorClick: () -> Unit,
     onModelSelectionClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isInputExpanded by remember { mutableStateOf(value = false) }
+    val sendButtonEnabled = (isStreaming || input.isNotBlank() || attachedFiles.isNotEmpty()) && isModelReady
 
     LaunchedEffect(input) {
         if (input.isBlank()) {
@@ -90,27 +93,6 @@ fun ChatInputBar(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        if (!isModelReady && !isStreaming) {
-            Card(
-                modifier = Modifier.fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                onClick = onModelManagement
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        stringResource(Res.string.model_not_ready_warning),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-        }
-
         Surface(
             tonalElevation = 6.dp,
             modifier = Modifier.fillMaxWidth(),
@@ -128,7 +110,19 @@ fun ChatInputBar(
                         onValueChange = onInputChange,
                         modifier = Modifier
                             .weight(1f)
-                            .defaultMinSize(minHeight = if (isInputExpanded) 200.dp else 40.dp),
+                            .defaultMinSize(minHeight = if (isInputExpanded) 200.dp else 40.dp)
+                            .onKeyEvent { event ->
+                                if (event.key == Key.Enter) {
+                                    if (event.isShiftPressed) {
+                                        onInputChange(input + "\n")
+                                    } else {
+                                        if (sendButtonEnabled) onSend()
+                                    }
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         enabled = isModelReady,
@@ -247,7 +241,6 @@ fun ChatInputBar(
 
                     Spacer(Modifier.width(8.dp))
 
-                    val sendButtonEnabled = (isStreaming || input.isNotBlank() || attachedFiles.isNotEmpty()) && isModelReady
                     IconButton(
                         onClick = {
                             if (isStreaming) {

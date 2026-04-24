@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -29,7 +30,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,7 +66,7 @@ fun GleeIntelligenceSheet(
     onRestoreDefaultPrompt: () -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var infoTitle by remember { mutableStateOf<String?>(null) }
     var infoText by remember { mutableStateOf<StringResource?>(null) }
@@ -230,7 +230,7 @@ private fun SheetSection(
     title: String,
     onRestore: (() -> Unit)? = null,
     onInfoClick: (() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
@@ -263,7 +263,7 @@ private fun SheetSection(
             if (onRestore != null) {
                 TextButton(
                     onClick = onRestore,
-                    contentPadding = PaddingValues(0.dp)
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
                     Text(
                         text = stringResource(Res.string.restore_defaults),
@@ -283,7 +283,7 @@ private fun ConfigSliderItem(
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
-    onInfoClick: (() -> Unit)? = null
+    onInfoClick: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier

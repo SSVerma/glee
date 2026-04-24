@@ -22,11 +22,7 @@ data class ChatState(
     val isModelReady: Boolean = false,
     val isInitializing: Boolean = false,
     val hfToken: String = "",
-    val activeSkills: Map<String, Boolean> = mapOf(
-        "local_file_system" to true,
-        "web_search" to false,
-        "code_execution" to false
-    ),
+    val activeSkills: Map<String, Boolean> = emptyMap(),
     val availableModels: List<ModelInfo> = emptyList(),
     val selectedModel: ModelInfo? = null,
     val modelConfig: GleeModelConfig = GleeModelConfig(),

@@ -1,5 +1,10 @@
 package `in`.ssverma.glee.features.chat.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Shield
@@ -28,12 +34,13 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import glee.shared.generated.resources.Res
-import glee.shared.generated.resources.meet_glee
+import glee.shared.generated.resources.download_model_banner_desc
+import glee.shared.generated.resources.download_model_banner_title
+import glee.shared.generated.resources.get_started
 import glee.shared.generated.resources.temporary_chat
 import glee.shared.generated.resources.temporary_chat_desc
 import org.jetbrains.compose.resources.stringResource
@@ -41,17 +48,83 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun WelcomeHeader(
     isPrivateMode: Boolean,
-    modifier: Modifier = Modifier
+    isModelDownloaded: Boolean,
+    onDownloadClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    if (isPrivateMode) {
-        PrivateWelcomeHeader(modifier)
-    } else {
-        StandardWelcomeHeader(modifier)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (isModelDownloaded) {
+            if (isPrivateMode) {
+                PrivateWelcomeHeader()
+            } else {
+                StandardWelcomeHeader()
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        AnimatedVisibility(
+            visible = !isModelDownloaded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            NoModelBanner(onDownloadClick)
+        }
     }
 }
 
 @Composable
-private fun StandardWelcomeHeader(modifier: Modifier = Modifier) {
+private fun NoModelBanner(onDownloadClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.CloudOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(Res.string.download_model_banner_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(Res.string.download_model_banner_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                lineHeight = 20.sp
+            )
+            Spacer(Modifier.height(20.dp))
+            androidx.compose.material3.Button(
+                onClick = onDownloadClick,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(Res.string.get_started), fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StandardWelcomeHeader() {
     val primaryGradient = Brush.linearGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primary,
@@ -61,7 +134,7 @@ private fun StandardWelcomeHeader(modifier: Modifier = Modifier) {
     )
 
     Column(
-        modifier = modifier.fillMaxWidth().padding(top = 80.dp, bottom = 48.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 60.dp, bottom = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val welcomeText = buildAnnotatedString {
@@ -84,7 +157,8 @@ private fun StandardWelcomeHeader(modifier: Modifier = Modifier) {
         Text(
             text = welcomeText,
             style = MaterialTheme.typography.displayMedium,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
 
         Spacer(Modifier.height(12.dp))
@@ -149,10 +223,10 @@ private fun StandardWelcomeHeader(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun PrivateWelcomeHeader(modifier: Modifier = Modifier) {
+private fun PrivateWelcomeHeader() {
     Column(
-        modifier = modifier.fillMaxWidth()
-            .padding(top = 80.dp, bottom = 48.dp)
+        modifier = Modifier.fillMaxWidth()
+            .padding(top = 60.dp, bottom = 12.dp)
             .padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
