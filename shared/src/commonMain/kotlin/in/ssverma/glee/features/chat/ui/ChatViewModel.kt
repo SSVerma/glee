@@ -33,6 +33,22 @@ import glee.shared.generated.resources.phi_4_name
 import glee.shared.generated.resources.phi_4_resource_usage
 import glee.shared.generated.resources.describe_image
 import glee.shared.generated.resources.loading_model_status
+import glee.shared.generated.resources.suggestion_book
+import glee.shared.generated.resources.suggestion_budget
+import glee.shared.generated.resources.suggestion_cleaning
+import glee.shared.generated.resources.suggestion_coding
+import glee.shared.generated.resources.suggestion_cooking
+import glee.shared.generated.resources.suggestion_email
+import glee.shared.generated.resources.suggestion_gift
+import glee.shared.generated.resources.suggestion_history
+import glee.shared.generated.resources.suggestion_joke
+import glee.shared.generated.resources.suggestion_language
+import glee.shared.generated.resources.suggestion_meditation
+import glee.shared.generated.resources.suggestion_productivity
+import glee.shared.generated.resources.suggestion_recipe
+import glee.shared.generated.resources.suggestion_travel
+import glee.shared.generated.resources.suggestion_trip
+import glee.shared.generated.resources.suggestion_workout
 import glee.shared.generated.resources.model_load_failed_status
 import glee.shared.generated.resources.model_ready_status
 import org.jetbrains.compose.resources.getString
@@ -193,7 +209,34 @@ class ChatViewModel(
             chatManager.loadConversations()
         }
 
+        refreshSuggestions()
         initializeModels()
+    }
+
+    private fun refreshSuggestions() {
+        viewModelScope.launch {
+            val allSuggestions = listOf(
+                Res.string.suggestion_trip,
+                Res.string.suggestion_recipe,
+                Res.string.suggestion_email,
+                Res.string.suggestion_workout,
+                Res.string.suggestion_book,
+                Res.string.suggestion_gift,
+                Res.string.suggestion_productivity,
+                Res.string.suggestion_coding,
+                Res.string.suggestion_history,
+                Res.string.suggestion_cooking,
+                Res.string.suggestion_travel,
+                Res.string.suggestion_language,
+                Res.string.suggestion_joke,
+                Res.string.suggestion_meditation,
+                Res.string.suggestion_budget,
+                Res.string.suggestion_cleaning
+            ).shuffled().take(4)
+            
+            val suggestions = allSuggestions.map { getString(it) }
+            _uiState.update { it.copy(suggestions = suggestions) }
+        }
     }
 
     private fun initializeModels() {
@@ -355,11 +398,13 @@ class ChatViewModel(
                 stopStreaming()
                 viewModelScope.launch { chatManager.clearChat() }
                 _uiState.update { it.copy(currentConversationId = null) }
+                refreshSuggestions()
             }
             ChatIntent.NewChat -> {
                 stopStreaming()
                 viewModelScope.launch { chatManager.clearChat() }
                 _uiState.update { it.copy(currentConversationId = null) }
+                refreshSuggestions()
             }
             is ChatIntent.StartConversation -> {
                 stopStreaming()

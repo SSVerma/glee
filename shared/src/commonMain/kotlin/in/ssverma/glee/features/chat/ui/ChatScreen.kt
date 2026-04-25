@@ -574,15 +574,9 @@ fun ChatContent(
                     .fillMaxWidth()
                     .imePadding()
             ) {
-                if (messages.isEmpty() && !isStreaming && isModelReady) {
-                    val defaultSuggestions = listOf(
-                        stringResource(Res.string.suggestion_trip),
-                        stringResource(Res.string.suggestion_recipe),
-                        stringResource(Res.string.suggestion_email),
-                        stringResource(Res.string.suggestion_workout)
-                    )
+                if (messages.isEmpty() && !isStreaming && isModelReady && suggestions.isNotEmpty()) {
                     SuggestionChips(
-                        suggestions = suggestions.ifEmpty { defaultSuggestions },
+                        suggestions = suggestions,
                         onSuggestionClick = { onIntent(ChatIntent.SelectSuggestion(it)) },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             .align(Alignment.CenterHorizontally)
