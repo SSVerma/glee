@@ -6,6 +6,19 @@ import okio.Path.Companion.toPath
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.koin.core.qualifier.named
+import kotlinx.browser.window
+import `in`.ssverma.glee.core.common.platform.UrlLauncher
+
+class WebUrlLauncher : UrlLauncher {
+    override fun launchUrl(url: String): Boolean {
+        return try {
+            window.open(url, "_blank")
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+}
 
 actual val platformFileSystem: FileSystem = object : FileSystem() {
     override fun appendingSink(file: Path, mustExist: Boolean) = throw UnsupportedOperationException()
@@ -25,5 +38,6 @@ actual val platformFileSystem: FileSystem = object : FileSystem() {
 
 actual val platformModule: Module = module {
     single { platformFileSystem }
+    single<UrlLauncher> { WebUrlLauncher() }
     single<Path>(named("appDataDir")) { "/tmp".toPath() }
 }

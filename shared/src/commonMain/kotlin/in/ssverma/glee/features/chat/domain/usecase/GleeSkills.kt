@@ -11,10 +11,9 @@ object GleeSkills {
     /**
      * Returns the list of default skills available in Glee.
      */
-    fun getDefaultSkills(fileSystem: FileSystem, json: Json): List<AiSkill> {
+    fun getDefaultSkills(urlLauncher: `in`.ssverma.glee.core.common.platform.UrlLauncher, json: Json): List<AiSkill> {
         return listOf(
-            LocalFileSystemSkill(fileSystem, json),
-            WebSearchSkill(json)
+            OpenMapSkill(json, urlLauncher)
         )
     }
 }

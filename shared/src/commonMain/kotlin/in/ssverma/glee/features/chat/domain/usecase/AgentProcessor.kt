@@ -39,10 +39,42 @@ class AgentProcessor(
             engine.generateResponse(currentPrompt).collect { chunk ->
                 collectedText += chunk.text
                 
-                if (chunk.isFinal && !collectedText.contains("<tool_call>")) {
-                    val remainingText = collectedText.substring(emittedTextLength)
-                    if (remainingText.isNotEmpty()) {
-                        emit(AgenticEvent.ResponseChunk(AiChunk(text = remainingText)))
+                if (chunk.isFinal) {
+                    val tagIndex = collectedText.indexOf("<tool_call>")
+                    if (tagIndex != -1) {
+                        val detected = detectToolCall(collectedText)
+                        if (detected != null && toolCall == null) {
+                            toolCall = detected
+                            emit(AgenticEvent.ToolCallDetected(detected))
+                        } else if (detected == null) {
+                            var remainingText = collectedText.substring(emittedTextLength)
+                            if (remainingText.isNotEmpty()) {
+                                if (remainingText.contains("<tool_call>")) {
+                                    remainingText = remainingText.replace("<tool_call>", "\n⚠️ **Invalid Tool Call:**\n```json\n")
+                                    if (remainingText.contains("</tool_call>")) {
+                                        remainingText = remainingText.replace("</tool_call>", "\n```")
+                                    } else {
+                                        remainingText += "\n```"
+                                    }
+                                }
+                                emit(AgenticEvent.ResponseChunk(AiChunk(text = remainingText)))
+                                emittedTextLength = collectedText.length
+                            }
+                        }
+                    } else {
+                        var remainingText = collectedText.substring(emittedTextLength)
+                        if (remainingText.isNotEmpty()) {
+                            if (remainingText.contains("<tool_call>")) {
+                                remainingText = remainingText.replace("<tool_call>", "\n⚠️ **Invalid Tool Call:**\n```json\n")
+                                if (remainingText.contains("</tool_call>")) {
+                                    remainingText = remainingText.replace("</tool_call>", "\n```")
+                                } else {
+                                    remainingText += "\n```"
+                                }
+                            }
+                            emit(AgenticEvent.ResponseChunk(AiChunk(text = remainingText)))
+                            emittedTextLength = collectedText.length
+                        }
                     }
                     return@collect
                 }
@@ -141,12 +173,10 @@ class AgentProcessor(
             $toolDefinitions
             
             # MANDATORY TOOL USE RULE
-            1. If the user asks for real-time information (weather, news, local places, food, etc.), YOU MUST use 'web_search'.
-            2. If you need to check files in the local system, YOU MUST use 'local_file_system'.
-            3. To call a tool, you MUST output ONLY the following JSON block:
+            1. You MUST use one of the tools listed above if it can help answer the user's query.
+            2. To call a tool, you MUST output ONLY the following JSON block:
                <tool_call>{"name": "TOOL_ID", "input": "YOUR_INPUT"}</tool_call>
-            4. DO NOT attempt to answer from your internal knowledge for real-time queries.
-            5. ALWAYS think step-by-step before calling a tool.
+            3. ALWAYS think step-by-step before calling a tool.
             
             # CONTEXT
             Always remember previous details from this conversation (like locations, preferences, or names) when using tools.
@@ -161,11 +191,29 @@ class AgentProcessor(
         
         if (text.contains(startTag) && text.contains(endTag)) {
             try {
-                val jsonStr = text.substringAfter(startTag).substringBefore(endTag)
+                var jsonStr = text.substringAfter(startTag).substringBefore(endTag).trim()
+                if (jsonStr.startsWith("```json")) {
+                    jsonStr = jsonStr.substringAfter("```json").substringBeforeLast("```").trim()
+                } else if (jsonStr.startsWith("```")) {
+                    jsonStr = jsonStr.substringAfter("```").substringBeforeLast("```").trim()
+                }
+                
                 val jsonElement = json.parseToJsonElement(jsonStr).jsonObject
+                
+                val inputElement = jsonElement["input"] ?: jsonElement["arguments"]
+                val inputStr = if (inputElement is kotlinx.serialization.json.JsonPrimitive) {
+                    inputElement.content
+                } else {
+                    inputElement?.toString() ?: ""
+                }
+
+                val skillId = jsonElement["name"]?.jsonPrimitive?.content 
+                    ?: jsonElement["tool_name"]?.jsonPrimitive?.content 
+                    ?: return null
+
                 return ToolCall(
-                    skillId = jsonElement["name"]?.jsonPrimitive?.content ?: return null,
-                    input = jsonElement["input"]?.jsonPrimitive?.content ?: ""
+                    skillId = skillId,
+                    input = inputStr
                 )
             } catch (e: Exception) {
                 return null

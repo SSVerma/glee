@@ -48,7 +48,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun WelcomeHeader(
     isPrivateMode: Boolean,
-    isModelDownloaded: Boolean,
+    showNoModelBanner: Boolean,
     onDownloadClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -56,18 +56,16 @@ fun WelcomeHeader(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (isModelDownloaded) {
-            if (isPrivateMode) {
-                PrivateWelcomeHeader()
-            } else {
-                StandardWelcomeHeader()
-            }
+        if (isPrivateMode) {
+            PrivateWelcomeHeader()
+        } else {
+            StandardWelcomeHeader()
         }
 
         Spacer(Modifier.height(24.dp))
 
         AnimatedVisibility(
-            visible = !isModelDownloaded,
+            visible = showNoModelBanner,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {

@@ -44,6 +44,7 @@ import glee.shared.generated.resources.performance
 import glee.shared.generated.resources.performance_desc
 import glee.shared.generated.resources.skills
 import glee.shared.generated.resources.skills_desc
+import glee.shared.generated.resources.thinking
 import org.jetbrains.compose.resources.stringResource
 
 enum class ChatActionSheetType {
@@ -90,7 +91,7 @@ fun GleeActionMenuSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = stringResource(Res.string.agentic_mode),
+                        text = if (isAgentic) stringResource(Res.string.thinking) else "Fast",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary

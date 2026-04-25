@@ -24,7 +24,7 @@ val chatModule = module {
     singleOf(::AgentProcessor)
     singleOf(::AiChatManager)
 
-    single { GleeSkills.getDefaultSkills(fileSystem = get(), json = get()) }
+    single { GleeSkills.getDefaultSkills(urlLauncher = get(), json = get()) }
 
     single {
         ChatViewModel(

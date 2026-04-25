@@ -75,6 +75,7 @@ import glee.shared.generated.resources.cancel_download_confirm
 import glee.shared.generated.resources.cancel_download_desc
 import glee.shared.generated.resources.cancel_download_dismiss
 import glee.shared.generated.resources.cancel_download_title
+import glee.shared.generated.resources.copied_to_clipboard
 import glee.shared.generated.resources.delete
 import glee.shared.generated.resources.delete_conversation_desc
 import glee.shared.generated.resources.delete_conversation_title
@@ -149,6 +150,10 @@ fun ChatScreen(
     val anyModelDownloaded = remember(uiState.availableModels) {
         uiState.availableModels.any { it.downloadStatus == ModelDownloadStatus.Downloaded }
     }
+    
+    val showNoModelBanner = remember(uiState.availableModels, anyModelDownloaded) {
+        uiState.availableModels.isNotEmpty() && !anyModelDownloaded
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -212,6 +217,7 @@ fun ChatScreen(
                     isModelReady = uiState.isModelReady,
                     isInitializing = uiState.isInitializing,
                     anyModelDownloaded = anyModelDownloaded,
+                    showNoModelBanner = showNoModelBanner,
                     selectedModel = uiState.selectedModel,
                     attachedFiles = uiState.attachedFiles,
                     messages = uiState.messages,
@@ -254,6 +260,7 @@ fun ChatScreen(
                                         isAgentic = uiState.modelConfig.isAgentic,
                                         onToggleAgentic = {
                                             viewModel.onIntent(ChatIntent.UpdateModelConfig(uiState.modelConfig.copy(isAgentic = it)))
+                                            viewModel.onIntent(ChatIntent.SaveIntelligenceConfig)
                                         },
                                         onSelectAction = { currentActionSheet = it },
                                         modifier = Modifier.fillMaxWidth()
@@ -328,6 +335,7 @@ fun ChatScreen(
                             isAgentic = uiState.modelConfig.isAgentic,
                             onToggleAgentic = {
                                 viewModel.onIntent(ChatIntent.UpdateModelConfig(uiState.modelConfig.copy(isAgentic = it)))
+                                viewModel.onIntent(ChatIntent.SaveIntelligenceConfig)
                             },
                             onSelectAction = { currentActionSheet = it }
                         )
@@ -505,6 +513,7 @@ fun ChatContent(
     isModelReady: Boolean,
     isInitializing: Boolean,
     anyModelDownloaded: Boolean,
+    showNoModelBanner: Boolean,
     selectedModel: ModelInfo?,
     attachedFiles: List<AttachedFile>,
     messages: MessageList,
@@ -521,11 +530,15 @@ fun ChatContent(
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val copiedMessage = stringResource(Res.string.copied_to_clipboard)
 
     Scaffold(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         topBar = {
             ChatTopBar(
                 showMenuIcon = !isWide && anyModelDownloaded,
@@ -623,14 +636,21 @@ fun ChatContent(
                     items = reversedMessages,
                     key = { it.id }
                 ) { message ->
-                    MessageBubble(message)
+                    MessageBubble(
+                        message = message,
+                        onCopy = {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(copiedMessage)
+                            }
+                        }
+                    )
                 }
 
                 item(key = "welcome_header") {
                     if (messages.isEmpty() && !isStreaming) {
                         WelcomeHeader(
                             isPrivateMode = isPrivateMode,
-                            isModelDownloaded = anyModelDownloaded,
+                            showNoModelBanner = showNoModelBanner,
                             onDownloadClick = onModelManagement
                         )
                     } else {

@@ -17,6 +17,8 @@ import kotlinx.coroutines.withContext
 actual class LiteRtEngine actual constructor() : AiEngine {
     private var engine: Engine? = null
     private var conversation: Conversation? = null
+    private var systemPrompt: String = ""
+    private var isSystemPromptSent: Boolean = false
     private val mutex = Mutex()
 
     actual override suspend fun loadModel(config: ModelConfig): Result<Unit> = mutex.withLock {
@@ -42,7 +44,16 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         mutex.withLock {
             val conv = conversation ?: throw IllegalStateException("Model not loaded")
             
-            conv.sendMessageAsync(prompt).collect { message ->
+            val cleanPrompt = prompt.trim()
+            val formattedPrompt = buildString {
+                if (systemPrompt.isNotEmpty() && !isSystemPromptSent) {
+                    append("<start_of_turn>system\n$systemPrompt<end_of_turn>\n")
+                    isSystemPromptSent = true
+                }
+                append("<start_of_turn>user\n$cleanPrompt<end_of_turn>\n<start_of_turn>model\n")
+            }
+            
+            conv.sendMessageAsync(formattedPrompt).collect { message ->
                 val text = message.contents.contents
                     .filterIsInstance<Content.Text>()
                     .joinToString("") { it.text }
@@ -60,13 +71,17 @@ actual class LiteRtEngine actual constructor() : AiEngine {
     }
 
     actual override fun setSystemPrompt(prompt: String) {
-        // Implementation
+        if (systemPrompt != prompt) {
+            systemPrompt = prompt
+            isSystemPromptSent = false
+        }
     }
 
     actual override suspend fun clearConversation() = mutex.withLock {
         withContext(Dispatchers.Default) {
             conversation?.close()
             conversation = engine?.createConversation()
+            isSystemPromptSent = false
         }
     }
 

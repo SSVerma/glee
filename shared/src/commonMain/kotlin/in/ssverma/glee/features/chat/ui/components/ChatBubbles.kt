@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -52,6 +53,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun MessageBubble(
     message: ChatMessage,
+    onCopy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.role == ChatRole.User
@@ -119,7 +121,10 @@ fun MessageBubble(
                         horizontalArrangement = Arrangement.End
                     ) {
                         IconButton(
-                            onClick = { clipboardManager.setText(AnnotatedString(message.content)) },
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(message.content))
+                                onCopy()
+                            },
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
@@ -141,6 +146,9 @@ fun ToolExecutionBubble(
     content: String,
     modifier: Modifier = Modifier,
 ) {
+    val isCompleted = content.startsWith("Completed:")
+    val displayContent = if (isCompleted) content.removePrefix("Completed:").trim() else content.removePrefix("Executing:").trim()
+
     Card(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
         colors = CardDefaults.cardColors(
@@ -151,10 +159,19 @@ fun ToolExecutionBubble(
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+            if (!isCompleted) {
+                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
             Spacer(Modifier.width(8.dp))
             Text(
-                text = stringResource(Res.string.executing_tool, content.take(30)),
+                text = if (isCompleted) "Completed: ${displayContent.take(30)}" else stringResource(Res.string.executing_tool, displayContent.take(30)),
                 style = MaterialTheme.typography.labelSmall
             )
         }

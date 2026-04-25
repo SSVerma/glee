@@ -111,7 +111,7 @@ class AiChatManager(
                         val assistantThought = ChatMessage(
                             id = randomId(),
                             role = ChatRole.Assistant,
-                            content = event.text
+                            content = "💭 **Thinking...**\n\n${event.text}"
                         )
                         _messages.update { it + assistantThought }
                         if (conversationId != null) repository.saveMessage(conversationId, assistantThought)
@@ -121,9 +121,9 @@ class AiChatManager(
                     }
                     is AgenticEvent.ToolExecutionStarted -> {
                         val toolRequestMsg = ChatMessage(
-                            id = randomId(),
+                            id = "tool_${event.skillId}",
                             role = ChatRole.Tool,
-                            content = event.skillId
+                            content = "Executing: ${event.skillId}"
                         )
                         _messages.update { it + toolRequestMsg }
                         if (conversationId != null) repository.saveMessage(conversationId, toolRequestMsg)
@@ -132,13 +132,16 @@ class AiChatManager(
                         // Optionally handle progress
                     }
                     is AgenticEvent.ToolResultReceived -> {
-                        val toolResultMsg = ChatMessage(
-                            id = randomId(),
-                            role = ChatRole.Assistant,
-                            content = "Tool Result: ${event.result}"
-                        )
-                        _messages.update { it + toolResultMsg }
-                        if (conversationId != null) repository.saveMessage(conversationId, toolResultMsg)
+                        _messages.update { list ->
+                            list.map { msg ->
+                                if (msg.id == "tool_${event.skillId}") {
+                                    msg.copy(content = "Completed: ${event.skillId}")
+                                } else {
+                                    msg
+                                }
+                            }
+                        }
+                        // Update in repository if needed, but for now we skip to keep history clean.
                     }
                     is AgenticEvent.Error -> {
                         emit(AiChunk(text = "Error: ${event.message}", isFinal = false))
