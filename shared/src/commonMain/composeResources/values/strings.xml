@@ -135,4 +135,5 @@
     <string name="phi_4_desc">Efficient small model optimized for logic and math from Microsoft.</string>
     <string name="phi_4_best_for">Logical games, math tutor, structured queries.</string>
     <string name="phi_4_resource_usage">Requires ~3GB RAM. ~2.1GB storage.</string>
+    <string name="describe_image">Describe the image</string>
 </resources>

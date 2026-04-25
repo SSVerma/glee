@@ -12,7 +12,7 @@ import androidx.room3.TypeConverter
 import androidx.room3.TypeConverters
 import `in`.ssverma.glee.features.chat.domain.model.ChatRole
 
-@Database(entities = [ConversationEntity::class, MessageEntity::class], version = 1)
+@Database(entities = [ConversationEntity::class, MessageEntity::class], version = 2)
 @ConstructedBy(GleeDatabaseConstructor::class)
 @TypeConverters(ChatConverters::class)
 abstract class GleeDatabase : RoomDatabase() {

@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import `in`.ssverma.glee.features.chat.data.remote.DownloadStatus
 import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
 import `in`.ssverma.glee.core.common.platform.FileSystem as GleeFileSystem
+import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
 import `in`.ssverma.glee.features.chat.domain.usecase.AiChatManager
 import `in`.ssverma.glee.domain.AiEngine
 import `in`.ssverma.glee.features.chat.domain.model.*
 import `in`.ssverma.glee.core.common.currentTimeMillis
 import `in`.ssverma.glee.core.common.platform.getSystemMetrics
+import `in`.ssverma.glee.core.common.platform.toCoilPath
 import `in`.ssverma.glee.core.preferences.GleeSettings
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.default_system_prompt
@@ -29,6 +31,7 @@ import glee.shared.generated.resources.phi_4_best_for
 import glee.shared.generated.resources.phi_4_desc
 import glee.shared.generated.resources.phi_4_name
 import glee.shared.generated.resources.phi_4_resource_usage
+import glee.shared.generated.resources.describe_image
 import glee.shared.generated.resources.loading_model_status
 import glee.shared.generated.resources.model_load_failed_status
 import glee.shared.generated.resources.model_ready_status
@@ -53,7 +56,8 @@ class ChatViewModel(
     private val engine: AiEngine,
     private val settings: GleeSettings,
     private val fileSystem: GleeFileSystem,
-    private val appDataDir: Path
+    private val appDataDir: Path,
+    private val speechRecognizerManager: SpeechRecognizerManager
 ) : ViewModel() {
 
     private val systemMetrics = getSystemMetrics()
@@ -61,8 +65,22 @@ class ChatViewModel(
 
     private val downloadJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
     private var streamingJob: kotlinx.coroutines.Job? = null
+    private var voiceRecordingJob: kotlinx.coroutines.Job? = null
 
     private suspend fun getAllModels() = listOf(
+        ModelInfo(
+            id = "gemma-3n-e2b",
+            name = getString(Res.string.gemma_3n_e2b_name),
+            description = getString(Res.string.gemma_3n_e2b_desc),
+            bestFor = getString(Res.string.gemma_3n_e2b_best_for),
+            resourceUsage = getString(Res.string.gemma_3n_e2b_resource_usage),
+            url = "https://huggingface.co/litert-community/gemma-3n-E2B-it-litert-lm/resolve/main/gemma-3n-E2B-it.litertlm",
+            infoUrl = "https://huggingface.co/litert-community/gemma-3n-E2B-it-litert-lm",
+            sizeGb = 3.6f,
+            isRecommended = true,
+            supportsVision = true,
+            supportsSkills = true
+        ),
         ModelInfo(
             id = "gemma-4-e2b",
             name = getString(Res.string.gemma_4_e2b_name),
@@ -72,7 +90,6 @@ class ChatViewModel(
             url = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm",
             infoUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm",
             sizeGb = 2.6f,
-            isRecommended = true,
             supportsThinking = true,
             supportsSkills = true,
             supportsVision = true
@@ -109,7 +126,12 @@ class ChatViewModel(
 
     init {
         val initialSkills = skills.associate { it.id to true }
-        _uiState.update { it.copy(activeSkills = initialSkills) }
+        _uiState.update { 
+            it.copy(
+                activeSkills = initialSkills,
+                isSpeechRecognitionSupported = speechRecognizerManager.isSupported
+            ) 
+        }
 
         skills.forEach { chatManager.registerSkill(it) }
         viewModelScope.launch {
@@ -292,7 +314,8 @@ class ChatViewModel(
                     modelPath = path.toString(),
                     temperature = currentConfig.temperature,
                     topK = currentConfig.topK,
-                    useGpu = currentConfig.useGpu
+                    useGpu = currentConfig.useGpu,
+                    maxNumImages = if (model.supportsVision) 1 else 0
                 )
             )
         }
@@ -370,7 +393,7 @@ class ChatViewModel(
             is ChatIntent.PickFile -> {
                 val attached = AttachedFile(
                     name = intent.file.name,
-                    path = intent.file.path,
+                    path = intent.file.toCoilPath(),
                     size = intent.file.getSize() ?: 0L,
                     platformFile = intent.file
                 )
@@ -503,6 +526,33 @@ class ChatViewModel(
             }
             ChatIntent.ToggleSystemPromptEditor -> _uiState.update { it.copy(showSystemPromptEditor = !it.showSystemPromptEditor) }
             ChatIntent.StopStreaming -> stopStreaming()
+            ChatIntent.ToggleVoiceRecording -> toggleVoiceRecording()
+        }
+    }
+
+    private fun toggleVoiceRecording() {
+        if (_uiState.value.isRecordingVoice) {
+            speechRecognizerManager.stopListening()
+            voiceRecordingJob?.cancel()
+            voiceRecordingJob = null
+            _uiState.update { it.copy(isRecordingVoice = false) }
+        } else {
+            _uiState.update { it.copy(isRecordingVoice = true) }
+            voiceRecordingJob = viewModelScope.launch {
+                try {
+                    speechRecognizerManager.startListening().collect { text ->
+                        if (text.isNotBlank()) {
+                            _uiState.update { 
+                                val current = it.currentInput
+                                val sep = if (current.isNotEmpty() && !current.endsWith(" ")) " " else ""
+                                it.copy(currentInput = current + sep + text)
+                            }
+                        }
+                    }
+                } finally {
+                    _uiState.update { it.copy(isRecordingVoice = false) }
+                }
+            }
         }
     }
 
@@ -520,24 +570,45 @@ class ChatViewModel(
     }
 
     private fun sendMessage() {
-        val text = _uiState.value.currentInput.trim()
-        if (text.isEmpty() && _uiState.value.attachedFiles.isEmpty()) return
-        if (_uiState.value.isStreaming || !_uiState.value.isModelReady) return
+        val currentState = _uiState.value
+        val text = currentState.currentInput.trim()
+        val attachedFiles = currentState.attachedFiles
 
-        val filesContext = _uiState.value.attachedFiles.joinToString("\n") { "[File: ${it.name}]" }
-        val fullPrompt = if (filesContext.isNotEmpty()) "$filesContext\n$text" else text
+        if (text.isEmpty() && attachedFiles.isEmpty()) return
+        if (currentState.isStreaming || !currentState.isModelReady) return
 
-        val isPrivate = _uiState.value.isPrivateMode
-        val modelId = _uiState.value.selectedModel?.id ?: ""
-        val isAgentic = _uiState.value.modelConfig.isAgentic
+        val selectedModel = currentState.selectedModel
+        val supportsVision = selectedModel?.supportsVision == true
+        
+        // Only include files if the model supports vision, but keep them for UI/History
+        val filesForEngine = if (supportsVision) attachedFiles else emptyList()
+
+        val fullPrompt = text
+
+        val isPrivate = currentState.isPrivateMode
+        val modelId = selectedModel?.id ?: ""
+        val isAgentic = currentState.modelConfig.isAgentic
 
         _uiState.update { it.copy(currentInput = "", attachedFiles = emptyList(), isStreaming = true, streamingContent = "") }
 
         val startTime = currentTimeMillis()
         streamingJob = viewModelScope.launch {
             try {
+                val uiPrompt = text
+                val enginePrompt = text.ifEmpty { getString(Res.string.describe_image) }
+
                 var fullResponse = ""
-                chatManager.sendMessage(fullPrompt, modelId, isPrivate, isAgentic).collect { chunk ->
+                // Pass attachedFiles to chatManager so they are saved in history, 
+                // but pass filesForEngine to ensure only supported models get the bytes.
+                chatManager.sendMessage(
+                    uiPrompt = uiPrompt,
+                    enginePrompt = enginePrompt,
+                    modelId = modelId, 
+                    isPrivate = isPrivate, 
+                    isAgentic = isAgentic, 
+                    files = filesForEngine,
+                    historyFiles = attachedFiles
+                ).collect { chunk ->
                     val latency = currentTimeMillis() - startTime
                     fullResponse += chunk.text
                     

@@ -1,5 +1,10 @@
 package `in`.ssverma.glee.features.chat.ui.components
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +52,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.isShiftPressed
@@ -74,11 +81,14 @@ fun ChatInputBar(
     isModelReady: Boolean,
     selectedModel: ModelInfo?,
     attachedFiles: List<AttachedFile>,
+    isSpeechRecognitionSupported: Boolean,
+    isRecordingVoice: Boolean,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     onPickFile: () -> Unit,
     onRemoveFile: (AttachedFile) -> Unit,
+    onToggleVoiceRecording: () -> Unit,
     onInspectorClick: () -> Unit,
     onModelSelectionClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -170,19 +180,27 @@ fun ChatInputBar(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(attachedFiles) { file ->
-                            InputChip(
-                                selected = true,
-                                onClick = { },
-                                label = { Text(file.name) },
-                                trailingIcon = {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        null,
-                                        modifier = Modifier.size(16.dp)
-                                            .clickable { onRemoveFile(file) })
-                                },
-                                shape = RoundedCornerShape(12.dp)
-                            )
+                            Box {
+                                coil3.compose.AsyncImage(
+                                    model = file.path,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                                IconButton(
+                                    onClick = { onRemoveFile(file) },
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .align(Alignment.TopEnd)
+                                        .background(MaterialTheme.colorScheme.surface, CircleShape)
+                                        .padding(2.dp)
+                                ) {
+                                    Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp))
+                                }
+                            }
                         }
                     }
                 }
@@ -193,7 +211,7 @@ fun ChatInputBar(
                 ) {
                     IconButton(
                         onClick = onPickFile,
-                        enabled = isModelReady && (selectedModel?.supportsVision ?: true)
+                        enabled = isModelReady
                     ) {
                         Icon(Icons.Default.Add, stringResource(Res.string.attach))
                     }
@@ -228,18 +246,35 @@ fun ChatInputBar(
 
                     Spacer(Modifier.width(8.dp))
 
-                    IconButton(
-                        onClick = { },
-                        enabled = false,
-                        modifier = Modifier.size(40.dp).background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            CircleShape
+                    if (isSpeechRecognitionSupported) {
+                        val infiniteTransition = rememberInfiniteTransition()
+                        val scale by infiniteTransition.animateFloat(
+                            initialValue = 1f,
+                            targetValue = if (isRecordingVoice) 1.2f else 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween<Float>(500),
+                                repeatMode = RepeatMode.Reverse
+                            )
                         )
-                    ) {
-                        Icon(Icons.Default.Mic, null, modifier = Modifier.size(20.dp))
-                    }
+                        val color = if (isRecordingVoice) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary
+                        val bgColor = if (isRecordingVoice) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
 
-                    Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = onToggleVoiceRecording,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .scale(scale)
+                                .background(bgColor, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Voice Input",
+                                modifier = Modifier.size(24.dp),
+                                tint = color
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                    }
 
                     IconButton(
                         onClick = {

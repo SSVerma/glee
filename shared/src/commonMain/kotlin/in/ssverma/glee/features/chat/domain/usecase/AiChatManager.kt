@@ -75,11 +75,20 @@ class AiChatManager(
         systemPrompt = prompt
     }
 
-    fun sendMessage(content: String, modelId: String, isPrivate: Boolean, isAgentic: Boolean): Flow<AiChunk> = flow {
+    fun sendMessage(
+        uiPrompt: String, 
+        enginePrompt: String,
+        modelId: String, 
+        isPrivate: Boolean, 
+        isAgentic: Boolean,
+        files: List<AttachedFile> = emptyList(),
+        historyFiles: List<AttachedFile> = emptyList()
+    ): Flow<AiChunk> = flow {
         val userMessage = ChatMessage(
             id = randomId(),
             role = ChatRole.User,
-            content = content
+            content = uiPrompt,
+            attachments = historyFiles.map { MessageAttachment(it.name, it.path, it.size) }
         )
         _messages.update { it + userMessage }
 
@@ -87,7 +96,7 @@ class AiChatManager(
             if (currentConversation == null) {
                 val newConv = Conversation(
                     id = randomId(),
-                    title = content.take(30),
+                    title = uiPrompt.ifBlank { "Image" }.take(30),
                     modelId = modelId
                 )
                 currentConversation = newConv
@@ -102,7 +111,7 @@ class AiChatManager(
         } else null
 
         if (isAgentic) {
-            agentProcessor.process(content, skills, systemPrompt).collect { event ->
+            agentProcessor.process(enginePrompt, skills, systemPrompt, files).collect { event ->
                 when (event) {
                     is AgenticEvent.ResponseChunk -> {
                         emit(event.chunk)
@@ -149,8 +158,11 @@ class AiChatManager(
                 }
             }
         } else {
+            // Currently agent Processor does not handle multimodal files in thought loop easily,
+            // but we can pass it to the engine. Wait, we should update AgentProcessor to accept files too if needed.
+            // For now, if it's not agentic:
             engine.setSystemPrompt(systemPrompt)
-            engine.generateResponse(content).collect { chunk ->
+            engine.generateResponse(enginePrompt, files).collect { chunk ->
                 emit(chunk)
             }
         }

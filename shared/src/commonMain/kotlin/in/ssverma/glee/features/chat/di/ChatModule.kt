@@ -17,6 +17,8 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import `in`.ssverma.glee.core.common.platform.FileSystem as GleeFileSystem
 
+import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
+
 val chatModule = module {
     single { ModelDownloader(client = get<HttpClient>(), okioFs = get<FileSystem>()) }
 
@@ -34,7 +36,8 @@ val chatModule = module {
             engine = get<AiEngine>(),
             settings = get<GleeSettings>(),
             fileSystem = get<GleeFileSystem>(),
-            appDataDir = get<Path>(named("appDataDir"))
+            appDataDir = get<Path>(named("appDataDir")),
+            speechRecognizerManager = get<SpeechRecognizerManager>()
         )
     }
 }

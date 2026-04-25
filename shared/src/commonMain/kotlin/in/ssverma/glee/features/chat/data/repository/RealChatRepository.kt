@@ -5,9 +5,15 @@ import `in`.ssverma.glee.core.database.GleeDatabase
 import `in`.ssverma.glee.core.database.MessageEntity
 import `in`.ssverma.glee.features.chat.domain.model.ChatMessage
 import `in`.ssverma.glee.features.chat.domain.model.Conversation
+import `in`.ssverma.glee.features.chat.domain.model.MessageAttachment
 import `in`.ssverma.glee.features.chat.domain.repository.ChatRepository
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
-class RealChatRepository(private val db: GleeDatabase) : ChatRepository {
+class RealChatRepository(
+    private val db: GleeDatabase,
+    private val json: Json
+) : ChatRepository {
 
     override suspend fun getConversations(): List<Conversation> {
         return db.chatDao().getConversations().map { it.toDomain() }
@@ -48,7 +54,10 @@ class RealChatRepository(private val db: GleeDatabase) : ChatRepository {
         id = id,
         role = role,
         content = content,
-        timestamp = timestamp
+        timestamp = timestamp,
+        attachments = attachmentsJson?.let { 
+            runCatching { json.decodeFromString<List<MessageAttachment>>(it) }.getOrNull() 
+        } ?: emptyList()
     )
 
     private fun ChatMessage.toEntity(conversationId: String) = MessageEntity(
@@ -56,6 +65,7 @@ class RealChatRepository(private val db: GleeDatabase) : ChatRepository {
         conversationId = conversationId,
         role = role,
         content = content,
-        timestamp = timestamp
+        timestamp = timestamp,
+        attachmentsJson = if (attachments.isNotEmpty()) json.encodeToString(attachments) else null
     )
 }

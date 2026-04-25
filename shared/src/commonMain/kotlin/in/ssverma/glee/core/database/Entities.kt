@@ -18,5 +18,6 @@ data class MessageEntity(
     val conversationId: String,
     val role: ChatRole,
     val content: String,
-    val timestamp: Long
+    val timestamp: Long,
+    val attachmentsJson: String? = null
 )

@@ -21,7 +21,8 @@ class AgentProcessor(
     fun process(
         prompt: String,
         skills: Map<String, AiSkill>,
-        systemPrompt: String
+        systemPrompt: String,
+        files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile> = emptyList()
     ): Flow<AgenticEvent> = flow {
         val agenticSystemPrompt = buildAgenticSystemPrompt(systemPrompt, skills.values.toList())
         engine.setSystemPrompt(agenticSystemPrompt)
@@ -29,6 +30,7 @@ class AgentProcessor(
         var currentIteration = 0
         var currentPrompt = prompt
         var isLooping = true
+        var isFirstTurn = true
 
         while (isLooping && currentIteration < maxIterations) {
             currentIteration++
@@ -36,7 +38,13 @@ class AgentProcessor(
             var toolCall: ToolCall? = null
             var emittedTextLength = 0
 
-            engine.generateResponse(currentPrompt).collect { chunk ->
+            val flow = if (isFirstTurn) {
+                engine.generateResponse(currentPrompt, files)
+            } else {
+                engine.generateResponse(currentPrompt)
+            }
+            isFirstTurn = false
+            flow.collect { chunk ->
                 collectedText += chunk.text
                 
                 if (chunk.isFinal) {

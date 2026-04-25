@@ -10,7 +10,10 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         return Result.success(Unit)
     }
 
-    actual override fun generateResponse(prompt: String): Flow<AiChunk> {
+    actual override fun generateResponse(
+        prompt: String,
+        files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile>
+    ): Flow<AiChunk> {
         return flow { 
             emit(AiChunk("iOS LiteRT implementation coming soon...", isFinal = true))
         }

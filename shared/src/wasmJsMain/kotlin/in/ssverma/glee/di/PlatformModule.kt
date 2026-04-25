@@ -8,6 +8,9 @@ import org.koin.dsl.module
 import org.koin.core.qualifier.named
 import kotlinx.browser.window
 import `in`.ssverma.glee.core.common.platform.UrlLauncher
+import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 class WebUrlLauncher : UrlLauncher {
     override fun launchUrl(url: String): Boolean {
@@ -18,6 +21,12 @@ class WebUrlLauncher : UrlLauncher {
             false
         }
     }
+}
+
+class WebSpeechRecognizerManager : SpeechRecognizerManager {
+    override val isSupported: Boolean = false
+    override fun startListening(): Flow<String> = emptyFlow()
+    override fun stopListening() {}
 }
 
 actual val platformFileSystem: FileSystem = object : FileSystem() {
@@ -41,5 +50,6 @@ actual val platformFileSystem: FileSystem = object : FileSystem() {
 actual val platformModule: Module = module {
     single { platformFileSystem }
     single<UrlLauncher> { WebUrlLauncher() }
+    single<SpeechRecognizerManager> { WebSpeechRecognizerManager() }
     single<Path>(named("appDataDir")) { "/tmp".toPath() }
 }

@@ -42,12 +42,16 @@ data class ChatState(
     val showCancelDownloadDialog: Boolean = false,
     val modelToCancelDownloadId: String? = null,
     val systemPrompt: String = "",
-    val modelToDelete: ModelInfo? = null
+    val modelToDelete: ModelInfo? = null,
+    val isSpeechRecognitionSupported: Boolean = false,
+    val isRecordingVoice: Boolean = false
 )
 
 sealed interface ChatIntent {
     data class UpdateInput(val input: String) : ChatIntent
     data object SendMessage : ChatIntent
+    data object StopStreaming : ChatIntent
+    data object ToggleVoiceRecording : ChatIntent
     data object ClearChat : ChatIntent
     data class SelectSuggestion(val suggestion: String) : ChatIntent
     data class PickFile(val file: PlatformFile) : ChatIntent
@@ -75,7 +79,6 @@ sealed interface ChatIntent {
     data object RestoreDefaultSystemPrompt : ChatIntent
     data object ToggleSystemPromptEditor : ChatIntent
     data object SaveIntelligenceConfig : ChatIntent
-    data object StopStreaming : ChatIntent
     
     data class StartConversation(val conversation: Conversation) : ChatIntent
     data class DeleteConversation(val conversation: Conversation) : ChatIntent

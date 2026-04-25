@@ -47,5 +47,6 @@ data class ModelConfig(
     val modelPath: String,
     val temperature: Float = 0.7f,
     val topK: Int = 40,
-    val useGpu: Boolean = false
+    val useGpu: Boolean = false,
+    val maxNumImages: Int = 0
 )

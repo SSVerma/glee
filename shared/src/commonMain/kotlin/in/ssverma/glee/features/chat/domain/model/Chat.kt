@@ -11,7 +11,16 @@ data class ChatMessage(
     val id: String,
     val role: ChatRole,
     val content: String,
+    val attachments: List<MessageAttachment> = emptyList(),
     val timestamp: Long = currentTimeMillis()
+)
+
+@Immutable
+@Serializable
+data class MessageAttachment(
+    val name: String,
+    val path: String?,
+    val size: Long
 )
 
 @Immutable

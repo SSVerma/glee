@@ -92,6 +92,24 @@ fun MessageBubble(
         ) {
             if (isUser) {
                 Column {
+                    if (message.attachments.isNotEmpty()) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        ) {
+                            message.attachments.forEach { attachment ->
+                                coil3.compose.AsyncImage(
+                                    model = attachment.path,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            }
+                        }
+                    }
                     Text(
                         text = message.content,
                         color = contentColor,

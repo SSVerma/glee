@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface AiEngine {
     suspend fun loadModel(config: ModelConfig): Result<Unit>
 
-    fun generateResponse(prompt: String): Flow<AiChunk>
+    fun generateResponse(prompt: String, files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile> = emptyList()): Flow<AiChunk>
 
     fun setSystemPrompt(prompt: String)
 

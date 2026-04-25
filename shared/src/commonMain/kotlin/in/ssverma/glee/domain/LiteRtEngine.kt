@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
  */
 expect class LiteRtEngine() : AiEngine {
     override suspend fun loadModel(config: ModelConfig): Result<Unit>
-    override fun generateResponse(prompt: String): Flow<AiChunk>
+    override fun generateResponse(prompt: String, files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile>): Flow<AiChunk>
     override fun setSystemPrompt(prompt: String)
     override fun setSkills(skills: List<AiSkill>)
     override suspend fun clearConversation()

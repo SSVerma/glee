@@ -11,6 +11,9 @@ import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import org.koin.core.qualifier.named
 import `in`.ssverma.glee.core.common.platform.UrlLauncher
+import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import java.awt.Desktop
 import java.net.URI
 
@@ -29,11 +32,18 @@ class JvmUrlLauncher : UrlLauncher {
     }
 }
 
+class JvmSpeechRecognizerManager : SpeechRecognizerManager {
+    override val isSupported: Boolean = false
+    override fun startListening(): Flow<String> = emptyFlow()
+    override fun stopListening() {}
+}
+
 actual val platformFileSystem: FileSystem = FileSystem.SYSTEM
 
 actual val platformModule: Module = module {
     single { platformFileSystem }
     single<UrlLauncher> { JvmUrlLauncher() }
+    single<SpeechRecognizerManager> { JvmSpeechRecognizerManager() }
 
     single {
         val dbFile = System.getProperty("user.home").toPath().resolve(".glee").resolve("glee.db")
@@ -41,6 +51,7 @@ actual val platformModule: Module = module {
             name = dbFile.toString(),
             factory = { GleeDatabaseConstructor.initialize() }
         ).setDriver(BundledSQLiteDriver())
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
 

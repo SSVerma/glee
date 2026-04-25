@@ -114,6 +114,10 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
+// For permission handling
+@Composable
+expect fun rememberPermissionLauncher(onResult: (Boolean) -> Unit): () -> Unit
+
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = koinViewModel(),
@@ -141,7 +145,7 @@ fun ChatScreen(
     val isMedium = adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.MEDIUM
 
     val launcher = rememberFilePickerLauncher(
-        type = PickerType.File(),
+        type = PickerType.Image,
         mode = PickerMode.Single
     ) { file ->
         file?.let { viewModel.onIntent(ChatIntent.PickFile(it)) }
@@ -153,6 +157,12 @@ fun ChatScreen(
     
     val showNoModelBanner = remember(uiState.availableModels, anyModelDownloaded) {
         uiState.availableModels.isNotEmpty() && !anyModelDownloaded
+    }
+
+    val permissionLauncher = rememberPermissionLauncher { granted ->
+        if (granted) {
+            viewModel.onIntent(ChatIntent.ToggleVoiceRecording)
+        }
     }
 
     ModalNavigationDrawer(
@@ -220,11 +230,16 @@ fun ChatScreen(
                     showNoModelBanner = showNoModelBanner,
                     selectedModel = uiState.selectedModel,
                     attachedFiles = uiState.attachedFiles,
+                    isSpeechRecognitionSupported = uiState.isSpeechRecognitionSupported,
+                    isRecordingVoice = uiState.isRecordingVoice,
                     messages = uiState.messages,
                     reversedMessages = reversedMessages,
                     isStreaming = uiState.isStreaming,
                     streamingContent = uiState.streamingContent,
                     onIntent = viewModel::onIntent,
+                    onToggleVoiceRecording = {
+                        permissionLauncher()
+                    },
                     onPickFile = { launcher.launch() },
                     onMenuClick = { scope.launch { drawerState.open() } },
                     onInspectorClick = {
@@ -516,11 +531,14 @@ fun ChatContent(
     showNoModelBanner: Boolean,
     selectedModel: ModelInfo?,
     attachedFiles: List<AttachedFile>,
+    isSpeechRecognitionSupported: Boolean,
+    isRecordingVoice: Boolean,
     messages: MessageList,
     reversedMessages: MessageList,
     isStreaming: Boolean,
     streamingContent: String,
     onIntent: (ChatIntent) -> Unit,
+    onToggleVoiceRecording: () -> Unit,
     onPickFile: () -> Unit,
     onMenuClick: () -> Unit,
     onInspectorClick: () -> Unit,
@@ -585,11 +603,14 @@ fun ChatContent(
                     isModelReady = isModelReady,
                     selectedModel = selectedModel,
                     attachedFiles = attachedFiles,
+                    isSpeechRecognitionSupported = isSpeechRecognitionSupported,
+                    isRecordingVoice = isRecordingVoice,
                     onInputChange = { onIntent(ChatIntent.UpdateInput(it)) },
                     onSend = { onIntent(ChatIntent.SendMessage) },
                     onStop = { onIntent(ChatIntent.StopStreaming) },
                     onPickFile = onPickFile,
                     onRemoveFile = { onIntent(ChatIntent.RemoveFile(it)) },
+                    onToggleVoiceRecording = onToggleVoiceRecording,
                     onInspectorClick = onInspectorClick,
                     onModelSelectionClick = onModelSelectionClick,
                     modifier = Modifier.fillMaxWidth()

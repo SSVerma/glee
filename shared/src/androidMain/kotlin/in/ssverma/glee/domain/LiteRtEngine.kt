@@ -3,6 +3,7 @@ package `in`.ssverma.glee.domain
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
@@ -45,7 +46,9 @@ actual class LiteRtEngine actual constructor() : AiEngine {
                         Log.d("LiteRtEngine", "Attempting GPU initialization...")
                         val gpuConfig = EngineConfig(
                             modelPath = config.modelPath,
-                            backend = Backend.GPU()
+                            backend = Backend.GPU(),
+                            visionBackend = if (config.maxNumImages > 0) Backend.GPU() else null,
+                            maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
                         )
                         val e = Engine(gpuConfig)
                         e.initialize()
@@ -55,11 +58,11 @@ actual class LiteRtEngine actual constructor() : AiEngine {
                             "LiteRtEngine",
                             "GPU initialization failed, falling back to CPU: ${e.message}"
                         )
-                        initializeCpuEngine(config.modelPath)
+                        initializeCpuEngine(config.modelPath, config.maxNumImages)
                     }
                 } else {
                     Log.d("LiteRtEngine", "CPU requested, bypassing GPU")
-                    initializeCpuEngine(config.modelPath)
+                    initializeCpuEngine(config.modelPath, config.maxNumImages)
                 }
 
                 engine = newEngine
@@ -73,10 +76,12 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         }
     }
 
-    private fun initializeCpuEngine(modelPath: String): Engine {
+    private fun initializeCpuEngine(modelPath: String, maxNumImages: Int): Engine {
         val cpuConfig = EngineConfig(
             modelPath = modelPath,
-            backend = Backend.CPU()
+            backend = Backend.CPU(),
+            visionBackend = if (maxNumImages > 0) Backend.CPU() else null,
+            maxNumImages = if (maxNumImages > 0) maxNumImages else null
         )
         val e = Engine(cpuConfig)
         e.initialize()
@@ -95,7 +100,10 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         }
     }
 
-    actual override fun generateResponse(prompt: String): Flow<AiChunk> = flow {
+    actual override fun generateResponse(
+        prompt: String, 
+        files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile>
+    ): Flow<AiChunk> = flow {
         mutex.withLock {
             val conv = conversation
             if (conv == null) {
@@ -127,15 +135,40 @@ actual class LiteRtEngine actual constructor() : AiEngine {
                     append("<start_of_turn>user\n$cleanPrompt<end_of_turn>\n<start_of_turn>model\n")
                 }
 
-                var receivedChunks = 0
-                conv.sendMessageAsync(formattedPrompt).collect { message ->
-                    receivedChunks++
-                    val text = message.contents.contents
-                        .filterIsInstance<Content.Text>()
-                        .joinToString("") { it.text }
+                // Only use multimodal Contents path if we actually have image files.
+                // Plain text prompts must use the string overload to avoid native crashes.
+                val imageContents = mutableListOf<Content>()
+                for (file in files) {
+                    try {
+                        val bytes = file.platformFile.readBytes()
+                        imageContents.add(Content.ImageBytes(bytes))
+                    } catch (e: Exception) {
+                        Log.e("LiteRtEngine", "Failed to read attached file: ${file.name}", e)
+                    }
+                }
 
-                    if (text.isNotEmpty()) {
-                        emit(AiChunk(text = text, isFinal = false))
+                var receivedChunks = 0
+                if (imageContents.isNotEmpty()) {
+                    imageContents.add(Content.Text(formattedPrompt))
+                    val contents = Contents.of(imageContents)
+                    conv.sendMessageAsync(contents).collect { message ->
+                        receivedChunks++
+                        val text = message.contents.contents
+                            .filterIsInstance<Content.Text>()
+                            .joinToString("") { it.text }
+                        if (text.isNotEmpty()) {
+                            emit(AiChunk(text = text, isFinal = false))
+                        }
+                    }
+                } else {
+                    conv.sendMessageAsync(formattedPrompt).collect { message ->
+                        receivedChunks++
+                        val text = message.contents.contents
+                            .filterIsInstance<Content.Text>()
+                            .joinToString("") { it.text }
+                        if (text.isNotEmpty()) {
+                            emit(AiChunk(text = text, isFinal = false))
+                        }
                     }
                 }
                 
