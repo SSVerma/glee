@@ -19,7 +19,9 @@ abstract class GleeDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
 }
 
-expect object GleeDatabaseConstructor : RoomDatabaseConstructor<GleeDatabase>
+expect object GleeDatabaseConstructor : RoomDatabaseConstructor<GleeDatabase> {
+    override fun initialize(): GleeDatabase
+}
 
 @Dao
 interface ChatDao {

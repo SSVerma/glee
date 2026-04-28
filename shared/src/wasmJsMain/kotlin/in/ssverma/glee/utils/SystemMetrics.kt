@@ -1,4 +1,4 @@
-package `in`.ssverma.glee.utils
+package `in`.ssverma.glee.core.common.platform
 
 class WasmSystemMetrics : SystemMetrics {
     override fun getUsedRamGb(): Float = 0f

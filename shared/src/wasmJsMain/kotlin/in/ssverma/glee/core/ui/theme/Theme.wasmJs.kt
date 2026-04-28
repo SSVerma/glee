@@ -11,3 +11,7 @@ actual fun dynamicDarkColorScheme(): ColorScheme = DarkColorScheme
 
 @Composable
 actual fun dynamicLightColorScheme(): ColorScheme = LightColorScheme
+
+@Composable
+actual fun SetSystemAppearance(isLight: Boolean) {
+}

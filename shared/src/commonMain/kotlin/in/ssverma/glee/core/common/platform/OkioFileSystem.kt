@@ -9,7 +9,7 @@ import okio.Path
 class OkioFileSystem(
     private val okioFs: OkioFS,
     override val appDataDir: Path
-) : FileSystem {
+) : GleeFileSystem {
 
     override suspend fun readFile(path: Path): Result<String> = runCatching {
         okioFs.read(path) {

@@ -15,7 +15,7 @@ import okio.Path
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import `in`.ssverma.glee.core.common.platform.FileSystem as GleeFileSystem
+import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
 

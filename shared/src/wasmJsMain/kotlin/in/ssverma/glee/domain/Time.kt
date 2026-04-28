@@ -1,5 +1,9 @@
 package `in`.ssverma.glee.core.common
 
-import kotlin.js.Date
+import kotlin.js.ExperimentalWasmJsInterop
 
-actual fun currentTimeMillis(): Long = Date.now().toLong()
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("() => Date.now()")
+external fun jsNow(): Double
+
+actual fun currentTimeMillis(): Long = jsNow().toLong()

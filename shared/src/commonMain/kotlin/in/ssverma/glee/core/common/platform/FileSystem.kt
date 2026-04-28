@@ -2,7 +2,7 @@ package `in`.ssverma.glee.core.common.platform
 
 import okio.Path
 
-interface FileSystem {
+interface GleeFileSystem {
     val appDataDir: Path
     suspend fun readFile(path: Path): Result<String>
     suspend fun writeFile(path: Path, content: String): Result<Unit>

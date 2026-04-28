@@ -1,7 +1,7 @@
 package `in`.ssverma.glee.features.chat.domain.usecase
 
 import `in`.ssverma.glee.features.chat.domain.model.AiSkill
-import `in`.ssverma.glee.core.common.platform.FileSystem
+import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 import kotlinx.serialization.json.Json
 
 /**

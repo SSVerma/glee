@@ -21,6 +21,10 @@ val gleeProperties = Properties().apply {
 val hfTokenValue = gleeProperties.getProperty("HF_TOKEN") ?: ""
 
 kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
@@ -171,6 +175,9 @@ val generateGleeConfig = tasks.register("generateGleeConfig") {
 // Ensure all Kotlin compilation and KSP tasks depend on our generation task
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     dependsOn(generateGleeConfig)
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
 }
 
 // Declare explicit dependency for KSP tasks to avoid implicit dependency warning

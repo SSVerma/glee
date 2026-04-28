@@ -1,6 +1,6 @@
 package `in`.ssverma.glee.di
 
-import `in`.ssverma.glee.core.common.platform.FileSystem
+import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 import `in`.ssverma.glee.core.common.platform.OkioFileSystem
 import `in`.ssverma.glee.core.database.di.databaseModule
 import `in`.ssverma.glee.core.network.di.networkModule
@@ -12,7 +12,7 @@ import org.koin.core.qualifier.named
 import okio.FileSystem as OkioFS
 
 val commonModule = org.koin.dsl.module {
-    single<FileSystem> {
+    single<GleeFileSystem> {
         OkioFileSystem(
             okioFs = get<OkioFS>(),
             appDataDir = get(named("appDataDir"))
