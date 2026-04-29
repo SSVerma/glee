@@ -31,7 +31,9 @@ import glee.shared.generated.resources.suggestion_trip
 import glee.shared.generated.resources.suggestion_workout
 import `in`.ssverma.glee.core.common.currentTimeMillis
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
+import `in`.ssverma.glee.core.common.platform.PlatformType
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
+import `in`.ssverma.glee.core.common.platform.getPlatformType
 import `in`.ssverma.glee.core.common.platform.getSystemMetrics
 import `in`.ssverma.glee.core.common.platform.toCoilPath
 import `in`.ssverma.glee.core.preferences.GleeSettings
@@ -79,34 +81,46 @@ class ChatViewModel(
     private var streamingJob: kotlinx.coroutines.Job? = null
     private var voiceRecordingJob: kotlinx.coroutines.Job? = null
 
-    private suspend fun getAllModels() = listOf(
-        ModelInfo(
-            id = "gemma-4-e2b",
-            name = getString(Res.string.gemma_4_e2b_name),
-            description = getString(Res.string.gemma_4_e2b_desc),
-            bestFor = getString(Res.string.gemma_4_e2b_best_for),
-            resourceUsage = getString(Res.string.gemma_4_e2b_resource_usage),
-            url = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm",
-            infoUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm",
-            sizeGb = 2.6f,
-            supportsThinking = true,
-            supportsSkills = true,
-            supportsVision = true
-        ),
-        ModelInfo(
-            id = "gemma-4-e4b",
-            name = getString(Res.string.gemma_4_e4b_name),
-            description = getString(Res.string.gemma_4_e4b_desc),
-            bestFor = getString(Res.string.gemma_4_e4b_best_for),
-            resourceUsage = getString(Res.string.gemma_4_e4b_resource_usage),
-            url = "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm",
-            infoUrl = "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm",
-            sizeGb = 3.7f,
-            supportsThinking = true,
-            supportsSkills = true,
-            supportsVision = true
+    private suspend fun getAllModels(): List<ModelInfo> {
+        val isWeb = getPlatformType() == PlatformType.WasmJs || getPlatformType() == PlatformType.Js
+
+        return listOf(
+            ModelInfo(
+                id = "gemma-4-e2b",
+                name = getString(Res.string.gemma_4_e2b_name),
+                description = getString(Res.string.gemma_4_e2b_desc),
+                bestFor = getString(Res.string.gemma_4_e2b_best_for),
+                resourceUsage = getString(Res.string.gemma_4_e2b_resource_usage),
+                url = if (isWeb) {
+                    "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.task"
+                } else {
+                    "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm"
+                },
+                infoUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm",
+                sizeGb = 2.6f,
+                supportsThinking = true,
+                supportsSkills = true,
+                supportsVision = true
+            ),
+            ModelInfo(
+                id = "gemma-4-e4b",
+                name = getString(Res.string.gemma_4_e4b_name),
+                description = getString(Res.string.gemma_4_e4b_desc),
+                bestFor = getString(Res.string.gemma_4_e4b_best_for),
+                resourceUsage = getString(Res.string.gemma_4_e4b_resource_usage),
+                url = if (isWeb) {
+                    "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it-web.task"
+                } else {
+                    "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm"
+                },
+                infoUrl = "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm",
+                sizeGb = 3.7f,
+                supportsThinking = true,
+                supportsSkills = true,
+                supportsVision = true
+            )
         )
-    )
+    }
 
     val uiState: StateFlow<ChatState> = combine(
         _uiState,
@@ -256,7 +270,8 @@ class ChatViewModel(
             try {
                 modelDownloader.downloadModel(
                     url = model.url,
-                    targetPath = targetPath
+                    targetPath = targetPath,
+                    token = _uiState.value.hfToken
                 ).collect { status ->
                     when (status) {
                         is DownloadStatus.Progress -> updateModelStatus(

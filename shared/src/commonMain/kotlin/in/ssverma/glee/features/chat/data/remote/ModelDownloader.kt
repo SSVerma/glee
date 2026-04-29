@@ -18,7 +18,7 @@ import okio.buffer
 import org.jetbrains.compose.resources.getString
 
 interface ModelDownloader {
-    fun downloadModel(url: String, targetPath: Path): Flow<DownloadStatus>
+    fun downloadModel(url: String, targetPath: Path, token: String? = null): Flow<DownloadStatus>
 }
 
 class KtorModelDownloader(
@@ -28,13 +28,16 @@ class KtorModelDownloader(
     /**
      * Downloads a model file using streaming to avoid memory issues with large files.
      */
-    override fun downloadModel(url: String, targetPath: Path): Flow<DownloadStatus> = channelFlow {
+    override fun downloadModel(url: String, targetPath: Path, token: String?): Flow<DownloadStatus> = channelFlow {
         send(DownloadStatus.Progress(0f))
 
         try {
             client.prepareGet(url) {
                 // IMPORTANT: Overwrite Accept header for binary download
                 header(HttpHeaders.Accept, "*/*")
+                if (!token.isNullOrBlank()) {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
                 
                 onDownload { bytesSentTotal, contentLength ->
                     if (contentLength != null && contentLength > 0) {

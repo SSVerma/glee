@@ -79,13 +79,13 @@ kotlin {
         val wasmJsMain by getting {
             dependencies {
                 implementation(libs.ktor.client.js)
-                implementation(npm("@mediapipe/tasks-genai", "0.10.14"))
+                implementation(npm("@mediapipe/tasks-genai", "0.10.20"))
             }
         }
         val jsMain by getting {
             dependencies {
                 implementation(libs.ktor.client.js)
-                implementation(npm("@mediapipe/tasks-genai", "0.10.14"))
+                implementation(npm("@mediapipe/tasks-genai", "0.10.20"))
             }
         }
         commonMain {
