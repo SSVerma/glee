@@ -17,7 +17,6 @@ import glee.shared.generated.resources.suggestion_book
 import glee.shared.generated.resources.suggestion_budget
 import glee.shared.generated.resources.suggestion_cleaning
 import glee.shared.generated.resources.suggestion_coding
-import glee.shared.generated.resources.suggestion_cooking
 import glee.shared.generated.resources.suggestion_email
 import glee.shared.generated.resources.suggestion_gift
 import glee.shared.generated.resources.suggestion_history
@@ -222,7 +221,6 @@ class ChatViewModel(
                 Res.string.suggestion_productivity,
                 Res.string.suggestion_coding,
                 Res.string.suggestion_history,
-                Res.string.suggestion_cooking,
                 Res.string.suggestion_travel,
                 Res.string.suggestion_language,
                 Res.string.suggestion_joke,

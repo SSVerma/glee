@@ -14,39 +14,38 @@ import kotlin.js.Promise
 
 @JsFun(
     """
-async function createMediaPipeLlmInferenceJs(fileName) {
+async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, maxNumImages) {
     console.log("[Glee] Initializing MediaPipe GenAI...");
     
     try {
         if (!navigator.gpu) {
-            const msg = "WebGPU is NOT supported or enabled in your browser. MediaPipe GenAI requires WebGPU.";
-            console.error("[Glee] " + msg);
-            throw new Error(msg);
+            throw new Error("WebGPU is NOT supported or enabled in your browser.");
         }
         
-        console.log("[Glee] Importing MediaPipe GenAI library from esm.sh...");
-        // Use 0.10.20 for better WebGPU compatibility
-        const mpGenAi = await eval('import("https://esm.sh/@mediapipe/tasks-genai@0.10.20")');
+        console.log("[Glee] Importing MediaPipe GenAI library...");
+        const mpGenAi = await eval('import("https://esm.sh/@mediapipe/tasks-genai")');
         const { FilesetResolver, LlmInference } = mpGenAi;
         
-        console.log("[Glee] Resolving GenAI WASM files from jsdelivr...");
+        console.log("[Glee] Resolving GenAI WASM files...");
         const genaiFileset = await FilesetResolver.forGenAiTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai@0.10.20/wasm"
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm"
         );
         
-        console.log("[Glee] Fetching model from OPFS: " + fileName);
         const dir = await navigator.storage.getDirectory();
         const fileHandle = await dir.getFileHandle(fileName);
         const file = await fileHandle.getFile();
-        console.log("[Glee] Model file size: " + (file.size / (1024 * 1024)).toFixed(2) + " MB");
-        
         const url = URL.createObjectURL(file);
         
-        console.log("[Glee] Initializing LlmInference instance...");
+        console.log("[Glee] Creating LlmInference instance...");
         const llmInference = await LlmInference.createFromOptions(genaiFileset, {
             baseOptions: {
                 modelAssetPath: url
-            }
+            },
+            maxTokens: 1024, // Reasonable default for better performance
+            temperature: temperature,
+            topK: topK,
+            topP: topP || 1.0,
+            maxNumImages: maxNumImages || 1
         });
         
         console.log("[Glee] LlmInference initialized successfully!");
@@ -59,18 +58,40 @@ async function createMediaPipeLlmInferenceJs(fileName) {
 }
 """
 )
-internal external fun createMediaPipeLlmInferenceJs(fileName: String): Promise<JsAny?>
+
+external fun createMediaPipeLlmInferenceJs(
+    fileName: String,
+    temperature: Float,
+    topK: Int,
+    topP: Float,
+    maxNumImages: Int
+): Promise<JsAny?>
 
 @JsFun(
     """
 async function generateResponseJs(llmInference, prompt, onChunk) {
+    let lastLength = 0;
+    let buffer = "";
+    let lastSendTime = Date.now();
+    
     await llmInference.generateResponse(prompt, (partialResult, done) => {
-        onChunk(partialResult, done);
+        const delta = partialResult.substring(lastLength);
+        lastLength = partialResult.length;
+        buffer += delta;
+        
+        const now = Date.now();
+        // Send every 50ms or if it's the final chunk
+        if (now - lastSendTime > 50 || done) {
+            onChunk(buffer, done);
+            buffer = "";
+            lastSendTime = now;
+        }
     });
 }
 """
 )
-internal external fun generateResponseJs(
+
+external fun generateResponseJs(
     llmInference: JsAny,
     prompt: String,
     onChunk: (String, Boolean) -> Unit
@@ -85,8 +106,8 @@ function closeLlmInferenceJs(llmInference) {
 }
 """
 )
-internal external fun closeLlmInferenceJs(llmInference: JsAny)
 
+external fun closeLlmInferenceJs(llmInference: JsAny)
 
 actual class LiteRtEngine actual constructor() : AiEngine {
 
@@ -95,7 +116,13 @@ actual class LiteRtEngine actual constructor() : AiEngine {
     actual override suspend fun loadModel(config: ModelConfig): Result<Unit> {
         return try {
             val fileName = config.modelPath.toPath().name
-            llmInference = createMediaPipeLlmInferenceJs(fileName).await<JsAny?>()
+            llmInference = createMediaPipeLlmInferenceJs(
+                fileName = fileName,
+                temperature = config.temperature,
+                topK = config.topK,
+                topP = 0.95f, // Default topP for smoother generation
+                maxNumImages = config.maxNumImages
+            ).await()
             Result.success(Unit)
         } catch (e: Throwable) {
             Result.failure(e)
