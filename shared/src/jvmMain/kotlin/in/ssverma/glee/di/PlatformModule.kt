@@ -16,6 +16,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import java.awt.Desktop
 import java.net.URI
+import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
+import `in`.ssverma.glee.features.chat.data.remote.KtorModelDownloader
+import `in`.ssverma.glee.core.common.platform.GleeFileSystem
+import `in`.ssverma.glee.core.common.platform.OkioFileSystem
 
 class JvmUrlLauncher : UrlLauncher {
     override fun launchUrl(url: String): Boolean {
@@ -44,6 +48,8 @@ actual val platformModule: Module = module {
     single { platformFileSystem }
     single<UrlLauncher> { JvmUrlLauncher() }
     single<SpeechRecognizerManager> { JvmSpeechRecognizerManager() }
+    single<ModelDownloader> { KtorModelDownloader(get(), get()) }
+    single<GleeFileSystem> { OkioFileSystem(get(), get(named("appDataDir"))) }
 
     single {
         val dbFile = System.getProperty("user.home").toPath().resolve(".glee").resolve("glee.db")

@@ -17,14 +17,18 @@ import okio.Path
 import okio.buffer
 import org.jetbrains.compose.resources.getString
 
-class ModelDownloader(
+interface ModelDownloader {
+    fun downloadModel(url: String, targetPath: Path): Flow<DownloadStatus>
+}
+
+class KtorModelDownloader(
     private val client: HttpClient,
     private val okioFs: FileSystem
-) {
+) : ModelDownloader {
     /**
      * Downloads a model file using streaming to avoid memory issues with large files.
      */
-    fun downloadModel(url: String, targetPath: Path): Flow<DownloadStatus> = channelFlow {
+    override fun downloadModel(url: String, targetPath: Path): Flow<DownloadStatus> = channelFlow {
         send(DownloadStatus.Progress(0f))
 
         try {

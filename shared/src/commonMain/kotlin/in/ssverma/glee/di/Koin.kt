@@ -12,12 +12,7 @@ import org.koin.core.qualifier.named
 import okio.FileSystem as OkioFS
 
 val commonModule = org.koin.dsl.module {
-    single<GleeFileSystem> {
-        OkioFileSystem(
-            okioFs = get<OkioFS>(),
-            appDataDir = get(named("appDataDir"))
-        )
-    }
+
     includes(networkModule, databaseModule, preferencesModule, chatModule)
 }
 

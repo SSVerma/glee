@@ -20,7 +20,7 @@ import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
 
 val chatModule = module {
-    single { ModelDownloader(client = get<HttpClient>(), okioFs = get<FileSystem>()) }
+
 
     single<AiEngine> { LiteRtEngine() }
     singleOf(::AgentProcessor)

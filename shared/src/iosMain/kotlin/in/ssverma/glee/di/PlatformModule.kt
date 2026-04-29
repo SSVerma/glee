@@ -17,6 +17,10 @@ import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
+import `in`.ssverma.glee.features.chat.data.remote.KtorModelDownloader
+import `in`.ssverma.glee.core.common.platform.GleeFileSystem
+import `in`.ssverma.glee.core.common.platform.OkioFileSystem
 
 class IosUrlLauncher : UrlLauncher {
     override fun launchUrl(url: String): Boolean {
@@ -46,6 +50,8 @@ actual val platformModule: Module = module {
     single { platformFileSystem }
     single<UrlLauncher> { IosUrlLauncher() }
     single<SpeechRecognizerManager> { IosSpeechRecognizerManager() }
+    single<ModelDownloader> { KtorModelDownloader(get(), get()) }
+    single<GleeFileSystem> { OkioFileSystem(get(), get(named("appDataDir"))) }
 
     single {
         val dbFile = NSHomeDirectory().toPath().resolve("Documents").resolve("glee.db")

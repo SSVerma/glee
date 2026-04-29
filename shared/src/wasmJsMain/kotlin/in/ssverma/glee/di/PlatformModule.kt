@@ -11,6 +11,10 @@ import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SettingsListener
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
+import `in`.ssverma.glee.features.chat.data.remote.WasmModelDownloader
+import `in`.ssverma.glee.core.common.platform.GleeFileSystem
+import `in`.ssverma.glee.core.common.platform.WasmGleeFileSystem
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -130,6 +134,8 @@ actual val platformModule: Module = module {
     single { platformFileSystem }
     single<UrlLauncher> { WebUrlLauncher() }
     single<SpeechRecognizerManager> { WebSpeechRecognizerManager() }
+    single<ModelDownloader> { WasmModelDownloader() }
+    single<GleeFileSystem> { WasmGleeFileSystem(get(named("appDataDir"))) }
     single<Path>(named("appDataDir")) { "/tmp".toPath() }
     single<GleeDatabase> { WasmGleeDatabase() }
     single<ObservableSettings> { WasmObservableSettings() }
