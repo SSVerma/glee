@@ -58,6 +58,7 @@ class ChatViewModel(
     private val downloadJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
     private var streamingJob: kotlinx.coroutines.Job? = null
     private var voiceRecordingJob: kotlinx.coroutines.Job? = null
+    private var importJob: kotlinx.coroutines.Job? = null
 
 
     val uiState: StateFlow<ChatState> = combine(
@@ -226,28 +227,18 @@ class ChatViewModel(
     }
 
     private fun deleteModel(model: ModelInfo) {
-        val targetPath = appDataDir.resolve("${model.id}.litertlm")
-        viewModelScope.launch(Dispatchers.Default) {
-            runCatching {
-                fileSystem.delete(targetPath)
-                updateModelStatus(model.id, ModelDownloadStatus.NotDownloaded)
+        viewModelScope.launch {
+            modelRepository.deleteModel(model)
+            
+            val updatedModels = modelRepository.getModelsWithStatus()
+            val anyLeft = updatedModels.any { it.downloadStatus == ModelDownloadStatus.Downloaded }
 
-                val anyLeft = modelRepository.getModelsWithStatus().any {
-                    val p = appDataDir.resolve("${it.id}.litertlm")
-                    fileSystem.exists(p)
-                }
-
-                if (!anyLeft || _uiState.value.selectedModel?.id == model.id) {
-                    _uiState.update {
-                        it.copy(
-                            isModelReady = false,
-                            selectedModel = null,
-                            currentConversationId = null
-                        )
-                    }
-                    chatManager.clearChat()
-                }
+            if (!anyLeft) {
+                _uiState.update { it.copy(isModelReady = false, selectedModel = null, currentConversationId = null) }
+                chatManager.clearChat()
             }
+
+            initializeModels()
         }
     }
 
@@ -450,7 +441,31 @@ class ChatViewModel(
 
             is ChatIntent.SetThemeMode -> settings.setThemeMode(intent.mode)
             is ChatIntent.SetAdaptiveColors -> settings.setAdaptiveColorsEnabled(intent.enabled)
-            ChatIntent.ImportModel -> { /* TODO */
+            
+            ChatIntent.ImportModel -> {
+                _uiState.update { it.copy(importError = null, isImporting = false) }
+            }
+
+            is ChatIntent.ImportModelFile -> {
+                importJob?.cancel()
+                _uiState.update { it.copy(isImporting = true, importError = null, importProgress = 0f) }
+                importJob = viewModelScope.launch {
+                    modelRepository.importModel(intent.file) { progress ->
+                        _uiState.update { it.copy(importProgress = progress) }
+                    }.onSuccess { model ->
+                        _uiState.update { it.copy(isImporting = false) }
+                        initializeModels() // Refresh list
+                    }.onFailure { error ->
+                        if (error !is CancellationException) {
+                            _uiState.update { it.copy(isImporting = false, importError = error.message) }
+                        }
+                    }
+                }
+            }
+
+            ChatIntent.CancelImport -> {
+                importJob?.cancel()
+                _uiState.update { it.copy(isImporting = false, importProgress = 0f) }
             }
 
             ChatIntent.TogglePrivateMode -> {

@@ -5,3 +5,5 @@ import io.github.vinceglb.filekit.core.PlatformFile
 actual fun getPlatformType(): PlatformType = PlatformType.WasmJs
 
 actual fun PlatformFile.toCoilPath(): String? = null
+
+actual fun PlatformFile.getAbsolutePath(): String? = null

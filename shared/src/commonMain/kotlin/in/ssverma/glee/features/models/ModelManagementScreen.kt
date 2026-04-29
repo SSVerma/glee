@@ -20,14 +20,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,15 +62,21 @@ import glee.shared.generated.resources.cancel_download_confirm
 import glee.shared.generated.resources.cancel_download_desc
 import glee.shared.generated.resources.cancel_download_dismiss
 import glee.shared.generated.resources.cancel_download_title
+import glee.shared.generated.resources.cancel_import
 import glee.shared.generated.resources.delete
 import glee.shared.generated.resources.delete_model_desc
 import glee.shared.generated.resources.delete_model_title
 import glee.shared.generated.resources.download
 import glee.shared.generated.resources.downloading_progress
 import glee.shared.generated.resources.hardware_requirements
+import glee.shared.generated.resources.import_failed
+import glee.shared.generated.resources.import_model
+import glee.shared.generated.resources.importing_model
+import glee.shared.generated.resources.importing_model_desc
 import glee.shared.generated.resources.learn_more_license
 import glee.shared.generated.resources.manage_models_desc
 import glee.shared.generated.resources.model_management
+import glee.shared.generated.resources.ok
 import glee.shared.generated.resources.recommended
 import glee.shared.generated.resources.retry
 import glee.shared.generated.resources.try_it
@@ -79,6 +84,9 @@ import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
 import `in`.ssverma.glee.features.chat.ui.ChatIntent
 import `in`.ssverma.glee.features.chat.ui.ChatViewModel
+import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.core.PickerMode
+import io.github.vinceglb.filekit.core.PickerType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -92,11 +100,18 @@ fun ModelManagementScreen(
     val adaptiveInfo = currentWindowAdaptiveInfo()
     val isWide = adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
 
+    val launcher = rememberFilePickerLauncher(
+        type = PickerType.File(extensions = listOf("task", "bin", "litertlm", "tflite")),
+        mode = PickerMode.Single
+    ) { file ->
+        file?.let { viewModel.onIntent(ChatIntent.ImportModelFile(it)) }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.model_management)) },
+                title = { Text(stringResource(resource = Res.string.model_management)) },
                 modifier = Modifier.statusBarsPadding(),
                 navigationIcon = {
                     IconButton(onClick = onClose) {
@@ -104,8 +119,10 @@ fun ModelManagementScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.onIntent(ChatIntent.ImportModel) }) {
+                    TextButton(onClick = { launcher.launch() }) {
                         Icon(Icons.Default.Add, null)
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(resource = Res.string.import_model))
                     }
                 }
             )
@@ -118,7 +135,7 @@ fun ModelManagementScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = stringResource(Res.string.manage_models_desc),
+                text = stringResource(resource = Res.string.manage_models_desc),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -167,8 +184,8 @@ fun ModelManagementScreen(
     uiState.modelToDelete?.let { model ->
         AlertDialog(
             onDismissRequest = { viewModel.onIntent(ChatIntent.CancelDeleteModel) },
-            title = { Text(stringResource(Res.string.delete_model_title, model.name)) },
-            text = { Text(stringResource(Res.string.delete_model_desc)) },
+            title = { Text(stringResource(resource = Res.string.delete_model_title, model.name)) },
+            text = { Text(stringResource(resource = Res.string.delete_model_desc)) },
             confirmButton = {
                 Button(
                     onClick = { viewModel.onIntent(ChatIntent.ConfirmDeleteModel) },
@@ -191,21 +208,65 @@ fun ModelManagementScreen(
     if (uiState.showCancelDownloadDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.onIntent(ChatIntent.DismissCancelDownload) },
-            title = { Text(stringResource(Res.string.cancel_download_title)) },
-            text = { Text(stringResource(Res.string.cancel_download_desc)) },
+            title = { Text(stringResource(resource = Res.string.cancel_download_title)) },
+            text = { Text(stringResource(resource = Res.string.cancel_download_desc)) },
             confirmButton = {
                 Button(
                     onClick = { viewModel.onIntent(ChatIntent.ConfirmCancelDownload) },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text(stringResource(Res.string.cancel_download_confirm))
+                    Text(stringResource(resource = Res.string.cancel_download_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.onIntent(ChatIntent.DismissCancelDownload) }) {
-                    Text(stringResource(Res.string.cancel_download_dismiss))
+                    Text(stringResource(resource = Res.string.cancel_download_dismiss))
                 }
             }
+        )
+    }
+
+    if (uiState.isImporting) {
+        AlertDialog(
+            onDismissRequest = { },
+            confirmButton = { },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelImport) }) {
+                    Text(stringResource(resource = Res.string.cancel_import))
+                }
+            },
+            title = { Text(stringResource(resource = Res.string.importing_model)) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    LinearProgressIndicator(
+                        progress = uiState.importProgress,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(stringResource(resource = Res.string.importing_model_desc))
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "${(uiState.importProgress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        )
+    }
+
+    uiState.importError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ChatIntent.ImportModel) /* Reset error */ },
+            confirmButton = {
+                Button(onClick = { viewModel.onIntent(ChatIntent.ImportModel) }) {
+                    Text(stringResource(resource = Res.string.ok))
+                }
+            },
+            title = { Text(stringResource(resource = Res.string.import_failed)) },
+            text = { Text(error) }
         )
     }
 }
@@ -247,7 +308,7 @@ fun ModelManagementItem(
                                 onClick = { },
                                 label = {
                                     Text(
-                                        stringResource(Res.string.recommended),
+                                        stringResource(resource = Res.string.recommended),
                                         fontSize = 10.sp
                                     )
                                 },
@@ -290,7 +351,7 @@ fun ModelManagementItem(
                 Icon(Icons.Default.OpenInNew, null, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = stringResource(Res.string.learn_more_license),
+                    text = stringResource(resource = Res.string.learn_more_license),
                     style = MaterialTheme.typography.labelSmall,
                     textDecoration = TextDecoration.Underline
                 )
@@ -323,7 +384,7 @@ fun ModelManagementItem(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = stringResource(Res.string.hardware_requirements),
+                            text = stringResource(resource = Res.string.hardware_requirements),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -342,7 +403,7 @@ fun ModelManagementItem(
             when (val status = model.downloadStatus) {
                 ModelDownloadStatus.NotDownloaded -> {
                     Button(onClick = onDownload, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(Res.string.download))
+                        Text(stringResource(resource = Res.string.download))
                     }
                 }
 
@@ -356,7 +417,8 @@ fun ModelManagementItem(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = stringResource(
-                                    Res.string.downloading_progress,
+                                    resource =
+                                        Res.string.downloading_progress,
                                     (status.progress * 100).toInt()
                                 ),
                                 modifier = Modifier.weight(1f),
@@ -364,7 +426,7 @@ fun ModelManagementItem(
                             )
                             TextButton(onClick = onCancel) {
                                 Text(
-                                    stringResource(Res.string.cancel),
+                                    stringResource(resource = Res.string.cancel),
                                     color = MaterialTheme.colorScheme.error
                                 )
                             }
@@ -374,7 +436,7 @@ fun ModelManagementItem(
 
                 ModelDownloadStatus.Downloaded -> {
                     Button(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(Res.string.try_it))
+                        Text(stringResource(resource = Res.string.try_it))
                         Spacer(Modifier.width(8.dp))
                         Icon(
                             Icons.AutoMirrored.Filled.Send,
@@ -393,7 +455,7 @@ fun ModelManagementItem(
                         )
                         Button(onClick = onDownload, modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                stringResource(Res.string.retry)
+                                stringResource(resource = Res.string.retry)
                             )
                         }
                     }

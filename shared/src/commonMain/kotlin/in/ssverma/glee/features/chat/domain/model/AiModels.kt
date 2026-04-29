@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
  * Rich metadata for AI models, defining capabilities and resources.
  */
 @Immutable
+@Serializable
 data class ModelInfo(
     val id: String,
     val name: String,
@@ -20,6 +21,8 @@ data class ModelInfo(
     val supportsThinking: Boolean = false,
     val supportsSkills: Boolean = true,
     val supportsVision: Boolean = false,
+    val isCustom: Boolean = false,
+    @kotlinx.serialization.Transient
     val downloadStatus: ModelDownloadStatus = ModelDownloadStatus.NotDownloaded
 )
 

@@ -44,7 +44,10 @@ data class ChatState(
     val systemPrompt: String = "",
     val modelToDelete: ModelInfo? = null,
     val isSpeechRecognitionSupported: Boolean = false,
-    val isRecordingVoice: Boolean = false
+    val isRecordingVoice: Boolean = false,
+    val isImporting: Boolean = false,
+    val importProgress: Float = 0f,
+    val importError: String? = null
 )
 
 sealed interface ChatIntent {
@@ -70,6 +73,8 @@ sealed interface ChatIntent {
     data class SetThemeMode(val mode: ThemeMode) : ChatIntent
     data class SetAdaptiveColors(val enabled: Boolean) : ChatIntent
     data object ImportModel : ChatIntent
+    data class ImportModelFile(val file: PlatformFile) : ChatIntent
+    data object CancelImport : ChatIntent
     data object TogglePrivateMode : ChatIntent
     data object DismissIncognitoInfo : ChatIntent
     data class SetShowIncognitoInfo(val show: Boolean) : ChatIntent

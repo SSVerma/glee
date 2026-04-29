@@ -147,4 +147,14 @@
     <string name="phi_4_best_for">Logical games, math tutor, structured queries.</string>
     <string name="phi_4_resource_usage">Requires ~3GB RAM. ~2.1GB storage.</string>
     <string name="describe_image">Describe the image</string>
+    <string name="importing_model">Importing Model…</string>
+    <string name="importing_model_desc">Copying file to app storage…</string>
+    <string name="import_failed">Import Failed</string>
+    <string name="import_unsupported_format">Unsupported model extension. Please use .task, .litertlm, .bin, or .tflite</string>
+    <string name="imported_model_desc">Imported model from %1$s</string>
+    <string name="custom_inference">Custom inference</string>
+    <string name="depends_on_model_size">Depends on model size</string>
+    <string name="import_model">Import Model</string>
+    <string name="cancel_import">Cancel Import</string>
+    <string name="ok">OK</string>
 </resources>

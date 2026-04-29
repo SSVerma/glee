@@ -16,3 +16,8 @@ expect fun getPlatformType(): PlatformType
  * Returns a path or URI that Coil can use to render the file.
  */
 expect fun PlatformFile.toCoilPath(): String?
+
+/**
+ * Returns the absolute path to the file if available on the platform.
+ */
+expect fun PlatformFile.getAbsolutePath(): String?
