@@ -18,6 +18,8 @@ import org.koin.dsl.module
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
+import `in`.ssverma.glee.features.chat.data.repository.AiModelRepository
+import `in`.ssverma.glee.features.chat.domain.ChatSuggestionProvider
 
 val chatModule = module {
 
@@ -27,6 +29,8 @@ val chatModule = module {
     singleOf(::AiChatManager)
 
     single { GleeSkills.getDefaultSkills(urlLauncher = get(), json = get()) }
+    single { AiModelRepository(fileSystem = get(), appDataDir = get(named("appDataDir"))) }
+    singleOf(::ChatSuggestionProvider)
 
     single {
         ChatViewModel(
@@ -37,7 +41,9 @@ val chatModule = module {
             settings = get<GleeSettings>(),
             fileSystem = get<GleeFileSystem>(),
             appDataDir = get<Path>(named("appDataDir")),
-            speechRecognizerManager = get<SpeechRecognizerManager>()
+            speechRecognizerManager = get<SpeechRecognizerManager>(),
+            modelRepository = get<AiModelRepository>(),
+            suggestionProvider = get<ChatSuggestionProvider>()
         )
     }
 }

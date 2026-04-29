@@ -5,40 +5,17 @@ import androidx.lifecycle.viewModelScope
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.default_system_prompt
 import glee.shared.generated.resources.describe_image
-import glee.shared.generated.resources.gemma_4_e2b_best_for
-import glee.shared.generated.resources.gemma_4_e2b_desc
-import glee.shared.generated.resources.gemma_4_e2b_name
-import glee.shared.generated.resources.gemma_4_e2b_resource_usage
-import glee.shared.generated.resources.gemma_4_e4b_best_for
-import glee.shared.generated.resources.gemma_4_e4b_desc
-import glee.shared.generated.resources.gemma_4_e4b_name
-import glee.shared.generated.resources.gemma_4_e4b_resource_usage
-import glee.shared.generated.resources.suggestion_book
-import glee.shared.generated.resources.suggestion_budget
-import glee.shared.generated.resources.suggestion_cleaning
-import glee.shared.generated.resources.suggestion_coding
-import glee.shared.generated.resources.suggestion_email
-import glee.shared.generated.resources.suggestion_gift
-import glee.shared.generated.resources.suggestion_history
-import glee.shared.generated.resources.suggestion_joke
-import glee.shared.generated.resources.suggestion_language
-import glee.shared.generated.resources.suggestion_meditation
-import glee.shared.generated.resources.suggestion_productivity
-import glee.shared.generated.resources.suggestion_recipe
-import glee.shared.generated.resources.suggestion_travel
-import glee.shared.generated.resources.suggestion_trip
-import glee.shared.generated.resources.suggestion_workout
 import `in`.ssverma.glee.core.common.currentTimeMillis
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
-import `in`.ssverma.glee.core.common.platform.PlatformType
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
-import `in`.ssverma.glee.core.common.platform.getPlatformType
 import `in`.ssverma.glee.core.common.platform.getSystemMetrics
 import `in`.ssverma.glee.core.common.platform.toCoilPath
 import `in`.ssverma.glee.core.preferences.GleeSettings
 import `in`.ssverma.glee.domain.AiEngine
 import `in`.ssverma.glee.features.chat.data.remote.DownloadStatus
 import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
+import `in`.ssverma.glee.features.chat.data.repository.AiModelRepository
+import `in`.ssverma.glee.features.chat.domain.ChatSuggestionProvider
 import `in`.ssverma.glee.features.chat.domain.model.AiSkill
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.GleeModelConfig
@@ -69,7 +46,9 @@ class ChatViewModel(
     private val settings: GleeSettings,
     private val fileSystem: GleeFileSystem,
     private val appDataDir: Path,
-    private val speechRecognizerManager: SpeechRecognizerManager
+    private val speechRecognizerManager: SpeechRecognizerManager,
+    private val modelRepository: AiModelRepository,
+    private val suggestionProvider: ChatSuggestionProvider
 ) : ViewModel() {
 
     private val systemMetrics = getSystemMetrics()
@@ -80,46 +59,6 @@ class ChatViewModel(
     private var streamingJob: kotlinx.coroutines.Job? = null
     private var voiceRecordingJob: kotlinx.coroutines.Job? = null
 
-    private suspend fun getAllModels(): List<ModelInfo> {
-        val isWeb = getPlatformType() == PlatformType.WasmJs || getPlatformType() == PlatformType.Js
-
-        return listOf(
-            ModelInfo(
-                id = "gemma-4-e2b",
-                name = getString(Res.string.gemma_4_e2b_name),
-                description = getString(Res.string.gemma_4_e2b_desc),
-                bestFor = getString(Res.string.gemma_4_e2b_best_for),
-                resourceUsage = getString(Res.string.gemma_4_e2b_resource_usage),
-                url = if (isWeb) {
-                    "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.task"
-                } else {
-                    "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm"
-                },
-                infoUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm",
-                sizeGb = 2.6f,
-                supportsThinking = true,
-                supportsSkills = true,
-                supportsVision = true
-            ),
-            ModelInfo(
-                id = "gemma-4-e4b",
-                name = getString(Res.string.gemma_4_e4b_name),
-                description = getString(Res.string.gemma_4_e4b_desc),
-                bestFor = getString(Res.string.gemma_4_e4b_best_for),
-                resourceUsage = getString(Res.string.gemma_4_e4b_resource_usage),
-                url = if (isWeb) {
-                    "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it-web.task"
-                } else {
-                    "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm"
-                },
-                infoUrl = "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm",
-                sizeGb = 3.7f,
-                supportsThinking = true,
-                supportsSkills = true,
-                supportsVision = true
-            )
-        )
-    }
 
     val uiState: StateFlow<ChatState> = combine(
         _uiState,
@@ -211,42 +150,14 @@ class ChatViewModel(
 
     private fun refreshSuggestions() {
         viewModelScope.launch {
-            val allSuggestions = listOf(
-                Res.string.suggestion_trip,
-                Res.string.suggestion_recipe,
-                Res.string.suggestion_email,
-                Res.string.suggestion_workout,
-                Res.string.suggestion_book,
-                Res.string.suggestion_gift,
-                Res.string.suggestion_productivity,
-                Res.string.suggestion_coding,
-                Res.string.suggestion_history,
-                Res.string.suggestion_travel,
-                Res.string.suggestion_language,
-                Res.string.suggestion_joke,
-                Res.string.suggestion_meditation,
-                Res.string.suggestion_budget,
-                Res.string.suggestion_cleaning
-            ).shuffled().take(4)
-
-            val suggestions = allSuggestions.map { getString(it) }
+            val suggestions = suggestionProvider.getSuggestions()
             _uiState.update { it.copy(suggestions = suggestions) }
         }
     }
 
     private fun initializeModels() {
         viewModelScope.launch {
-            val allModels = getAllModels()
-            val updatedModels = allModels.map { model ->
-                val path = appDataDir.resolve("${model.id}.litertlm")
-                val exists = withContext(Dispatchers.Default) { fileSystem.exists(path) }
-                if (exists) {
-                    model.copy(downloadStatus = ModelDownloadStatus.Downloaded)
-                } else {
-                    model.copy(downloadStatus = ModelDownloadStatus.NotDownloaded)
-                }
-            }
-
+            val updatedModels = modelRepository.getModelsWithStatus()
             val firstDownloaded =
                 updatedModels.find { it.downloadStatus == ModelDownloadStatus.Downloaded }
 
@@ -321,7 +232,7 @@ class ChatViewModel(
                 fileSystem.delete(targetPath)
                 updateModelStatus(model.id, ModelDownloadStatus.NotDownloaded)
 
-                val anyLeft = getAllModels().any {
+                val anyLeft = modelRepository.getModelsWithStatus().any {
                     val p = appDataDir.resolve("${it.id}.litertlm")
                     fileSystem.exists(p)
                 }
