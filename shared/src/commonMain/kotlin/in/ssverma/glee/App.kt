@@ -7,11 +7,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import `in`.ssverma.glee.features.chat.domain.model.ThemeMode
+import `in`.ssverma.glee.features.chat.ui.ChatIntent
 import `in`.ssverma.glee.features.chat.ui.ChatViewModel
 import `in`.ssverma.glee.navigation.RootNavHost
 import `in`.ssverma.glee.core.ui.theme.GleeTheme
+import `in`.ssverma.glee.core.ui.components.WebPerformanceDialog
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -24,6 +29,11 @@ fun App() {
         ThemeMode.Light -> false
         ThemeMode.Dark -> true
     }
+
+    WebPerformanceDialog(
+        showDialog = uiState.showDownloadDialog,
+        onDismissRequest = { viewModel.onIntent(ChatIntent.SetShowDownloadDialog(false)) }
+    )
 
     GleeTheme(
         darkTheme = isDark,

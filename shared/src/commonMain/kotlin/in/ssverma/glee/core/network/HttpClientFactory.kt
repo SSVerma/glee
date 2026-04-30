@@ -37,8 +37,8 @@ object HttpClientFactory {
             }
 
             defaultRequest {
-                if (url.host.endsWith("huggingface.co") && GleeConfig.HF_TOKEN.isNotBlank()) {
-                    header(HttpHeaders.Authorization, "Bearer ${GleeConfig.HF_TOKEN}")
+                if (url.host.endsWith("huggingface.co") && GleeConfig.config.hfToken.isNotBlank()) {
+                    header(HttpHeaders.Authorization, "Bearer ${GleeConfig.config.hfToken}")
                 }
             }
         }

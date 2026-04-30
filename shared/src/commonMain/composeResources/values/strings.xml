@@ -157,4 +157,11 @@
     <string name="import_model">Import Model</string>
     <string name="cancel_import">Cancel Import</string>
     <string name="ok">OK</string>
+    <string name="fast">Fast</string>
+    <string name="requires_agentic_mode">Requires Agentic Mode</string>
+    <string name="get_glee_app">Get the Glee App</string>
+    <string name="web_performance_warning">The web version might be slow due to WebGPU limitations. For the best experience, download our native apps.</string>
+    <string name="download_for_desktop">Download for Desktop</string>
+    <string name="get_on_play_store">Get it on Play Store</string>
+    <string name="continue_on_web">Continue on Web</string>
 </resources>

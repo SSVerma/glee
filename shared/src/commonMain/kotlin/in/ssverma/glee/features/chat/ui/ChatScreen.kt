@@ -564,6 +564,7 @@ fun ChatContent(
                 onMenuClick = onMenuClick,
                 onTogglePrivate = { onIntent(ChatIntent.TogglePrivateMode) },
                 onNewChat = { onIntent(ChatIntent.NewChat) },
+                onDownloadAppsClick = { onIntent(ChatIntent.SetShowDownloadDialog(true)) },
                 scrollBehavior = scrollBehavior,
                 actionsEnabled = anyModelDownloaded
             )

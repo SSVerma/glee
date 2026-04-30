@@ -1,0 +1,49 @@
+name: Web Deployment (Firebase)
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Manually triggered deployment reason'
+        required: false
+        default: 'Manual re-deploy'
+
+  workflow_run:
+    workflows: [ "Build and Release Targets" ]
+    types: [ completed ]
+    branches: [ main ]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download Web Artifact from Build Workflow
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: shared/build/dist/wasmJs/productionExecutable
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          firebase deploy --only hosting --project glee

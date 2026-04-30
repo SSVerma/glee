@@ -1,5 +1,6 @@
 package `in`.ssverma.glee
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import `in`.ssverma.glee.di.initKoin

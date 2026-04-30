@@ -9,6 +9,8 @@ build
 .DS_Store
 local.properties
 glee.properties
+release.properties
+google-services.json
 *.iml
 .kotlin/
 kotlin-js-store/

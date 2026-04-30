@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -14,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import `in`.ssverma.glee.core.common.platform.getPlatformType
+import `in`.ssverma.glee.core.common.platform.PlatformType
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.app_name
 import org.jetbrains.compose.resources.stringResource
@@ -26,9 +29,13 @@ fun ChatTopBar(
     onMenuClick: () -> Unit,
     onTogglePrivate: () -> Unit,
     onNewChat: () -> Unit,
+    onDownloadAppsClick: () -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
     actionsEnabled: Boolean = true
 ) {
+    val platform = getPlatformType()
+    val isWeb = platform == PlatformType.WasmJs || platform == PlatformType.Js
+
     CenterAlignedTopAppBar(
         scrollBehavior = scrollBehavior,
         title = {
@@ -46,6 +53,11 @@ fun ChatTopBar(
         },
         actions = {
             if (actionsEnabled) {
+                if (isWeb) {
+                    IconButton(onClick = onDownloadAppsClick) {
+                        Icon(Icons.Default.Download, null)
+                    }
+                }
                 IconButton(onClick = onNewChat) {
                     Icon(Icons.Default.Add, null)
                 }

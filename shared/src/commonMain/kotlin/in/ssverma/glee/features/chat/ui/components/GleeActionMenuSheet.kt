@@ -37,11 +37,13 @@ import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.agentic_mode
 import glee.shared.generated.resources.agentic_mode_info
 import glee.shared.generated.resources.done
+import glee.shared.generated.resources.fast
 import glee.shared.generated.resources.glee_tools
 import glee.shared.generated.resources.intelligence
 import glee.shared.generated.resources.intelligence_desc
 import glee.shared.generated.resources.performance
 import glee.shared.generated.resources.performance_desc
+import glee.shared.generated.resources.requires_agentic_mode
 import glee.shared.generated.resources.skills
 import glee.shared.generated.resources.skills_desc
 import glee.shared.generated.resources.thinking
@@ -91,7 +93,7 @@ fun GleeActionMenuSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isAgentic) stringResource(Res.string.thinking) else "Fast",
+                        text = if (isAgentic) stringResource(Res.string.thinking) else stringResource(Res.string.fast),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -212,7 +214,7 @@ private fun ActionMenuItem(
                     }
                 )
                 Text(
-                    text = if (enabled) description else "Requires Agentic Mode",
+                    text = if (enabled) description else stringResource(Res.string.requires_agentic_mode),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (enabled) {
                         MaterialTheme.colorScheme.onSurfaceVariant

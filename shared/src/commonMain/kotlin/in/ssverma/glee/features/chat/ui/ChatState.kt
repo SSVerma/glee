@@ -48,7 +48,8 @@ data class ChatState(
     val isImporting: Boolean = false,
     val importProgress: Float = 0f,
     val importError: String? = null,
-    val loadError: String? = null
+    val loadError: String? = null,
+    val showDownloadDialog: Boolean = false
 )
 
 sealed interface ChatIntent {
@@ -91,4 +92,5 @@ sealed interface ChatIntent {
     data object ConfirmDeleteConversation : ChatIntent
     data object CancelDeleteConversation : ChatIntent
     data object NewChat : ChatIntent
+    data class SetShowDownloadDialog(val show: Boolean) : ChatIntent
 }

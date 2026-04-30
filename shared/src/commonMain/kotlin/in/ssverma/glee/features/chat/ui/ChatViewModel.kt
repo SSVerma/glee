@@ -9,6 +9,8 @@ import `in`.ssverma.glee.core.common.currentTimeMillis
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
 import `in`.ssverma.glee.core.common.platform.getSystemMetrics
+import `in`.ssverma.glee.core.common.platform.getPlatformType
+import `in`.ssverma.glee.core.common.platform.PlatformType
 import `in`.ssverma.glee.core.common.platform.toCoilPath
 import `in`.ssverma.glee.core.preferences.GleeSettings
 import `in`.ssverma.glee.domain.AiEngine
@@ -81,7 +83,8 @@ class ChatViewModel(
         _uiState.update {
             it.copy(
                 activeSkills = initialSkills,
-                isSpeechRecognitionSupported = speechRecognizerManager.isSupported
+                isSpeechRecognitionSupported = speechRecognizerManager.isSupported,
+                showDownloadDialog = getPlatformType() == PlatformType.WasmJs || getPlatformType() == PlatformType.Js
             )
         }
 
@@ -539,6 +542,7 @@ class ChatViewModel(
             ChatIntent.ToggleSystemPromptEditor -> _uiState.update { it.copy(showSystemPromptEditor = !it.showSystemPromptEditor) }
             ChatIntent.StopStreaming -> stopStreaming()
             ChatIntent.ToggleVoiceRecording -> toggleVoiceRecording()
+            is ChatIntent.SetShowDownloadDialog -> _uiState.update { it.copy(showDownloadDialog = intent.show) }
         }
     }
 

@@ -14,4 +14,5 @@ actual fun dynamicLightColorScheme(): ColorScheme = LightColorScheme
 
 @Composable
 actual fun SetSystemAppearance(isLight: Boolean) {
+    // Relying on Compose Multiplatform's built-in handling
 }

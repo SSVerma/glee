@@ -1,76 +1,104 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM).
+# Glee - Private, Local-First AI Assistant
 
-* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./shared/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
-    folder is the appropriate location.
+Glee is a production-grade, open-source AI assistant built with **Kotlin Multiplatform** and **Compose Multiplatform**. It allows you to run state-of-the-art AI models (like Gemma 4, Phi-4) entirely on your device, ensuring maximum privacy and offline accessibility.
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+![Glee Banner](./art/banner.png)
 
-### Build and Run Android Application
+## 🚀 Features
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :shared:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :shared:assembleDebug
-  ```
+- **Local-First Intelligence**: All AI processing happens on-device using LiteRT (TensorFlow Lite).
+- **Private by Design**: Your chats and data never leave your device.
+- **Cross-Platform**: Run on Android, iOS, Desktop (Windows, macOS, Linux), and Web (WASM).
+- **Agentic Mode (Alpha)**: Enable Glee to use tools and reasoning steps to solve complex tasks.
+- **Dynamic Themes**: Supports Material 3 Expressive design with adaptive colors (on Android).
+- **Voice Support**: Integrated speech-to-text for hands-free interaction.
+- **File Attachments**: Support for image analysis with vision-enabled models.
 
-### Build and Run Desktop (JVM) Application
+## 🛠 Tech Stack
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :shared:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :shared:run
-  ```
+- **UI Framework**: [Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform)
+- **Language**: [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html)
+- **Dependency Injection**: [Koin](https://insert-koin.io/)
+- **Networking**: [Ktor](https://ktor.io/)
+- **Image Loading**: [Coil 3](https://coil-kt.github.io/coil/)
+- **Local Database**: [Room](https://developer.android.com/jetpack/androidx/releases/room)
+- **Settings**: [Multiplatform Settings](https://github.com/russhwolf/multiplatform-settings)
+- **File Handling**: [FileKit](https://github.com/vinceglb/FileKit)
+- **Navigation**: [Navigation 3 (Compose)](https://developer.android.com/jetpack/compose/navigation)
+- **AI Engine**: [LiteRT (formerly TensorFlow Lite)](https://ai.google.dev/edge/litert)
 
-### Build and Run Web Application
+## 📱 Supported Platforms
 
-To build and run the development version of the web app, use the run configuration from the run widget
-in your IDE's toolbar or run it directly from the terminal:
-- for the Wasm target (faster, modern browsers):
-  - on macOS/Linux
-    ```shell
-    ./gradlew :shared:wasmJsBrowserDevelopmentRun
-    ```
-  - on Windows
-    ```shell
-    .\gradlew.bat :shared:wasmJsBrowserDevelopmentRun
-    ```
-- for the JS target (slower, supports older browsers):
-  - on macOS/Linux
-    ```shell
-    ./gradlew :shared:jsBrowserDevelopmentRun
-    ```
-  - on Windows
-    ```shell
-    .\gradlew.bat :shared:jsBrowserDevelopmentRun
-    ```
-
-### Build and Run iOS Application
-
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+| Platform | Status | Artifact |
+| :--- | :--- | :--- |
+| **Android** | Production Ready | APK, AAB |
+| **iOS** | Development | App Store |
+| **Desktop (macOS)** | Production Ready | DMG |
+| **Desktop (Windows)** | Production Ready | MSI |
+| **Desktop (Linux)** | Production Ready | DEB |
+| **Web (WASM)** | Preview (WebGPU) | Firebase Hosting |
 
 ---
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
-[Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform/#compose-multiplatform),
-[Kotlin/Wasm](https://kotl.in/wasm/)…
+## 📸 Screenshots
 
-We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
-If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
+| Android | Desktop | Web |
+| :---: | :---: | :---: |
+| ![Android Screenshot](./art/android_ss.png) | ![Desktop Screenshot](./art/desktop_ss.png) | ![Web Screenshot](./art/web_ss.png) |
+
+---
+
+## 🏗 Build and Run
+
+### Prerequisites
+- JDK 17+
+- Android Studio (for Android/Common development)
+- Xcode (for iOS development)
+- Firebase CLI (for web deployment)
+
+### Android
+```bash
+./gradlew :shared:assembleDebug
+# For release with auto-versioning
+./gradlew :shared:generateAndroidRelease
+```
+
+### Desktop (JVM)
+```bash
+./gradlew :shared:run
+# For packaging installers
+./gradlew :shared:packageReleaseDmg # macOS
+./gradlew :shared:packageReleaseMsi # Windows
+./gradlew :shared:packageReleaseDeb # Linux
+```
+
+### Web (WASM)
+```bash
+./gradlew :shared:wasmJsBrowserDevelopmentRun
+# For deployment
+./gradlew :shared:deployWeb
+```
+
+### iOS
+1. Open `iosApp/iosApp.xcodeproj` in Xcode.
+2. Select your target and run.
+
+## 🔑 Configuration
+
+To access gated models on Hugging Face, add your `HF_TOKEN` to `glee.properties` in the root directory:
+```properties
+HF_TOKEN=your_token_here
+```
+
+For Android signing, copy `release.properties.example` to `release.properties` and fill in your keystore details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Glee is an open-source project and we appreciate help with bug fixes, new features, and documentation.
+
+## 📄 License
+
+This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+
+---
+Built with ❤️ by [ssverma](https://github.com/ssverma)
