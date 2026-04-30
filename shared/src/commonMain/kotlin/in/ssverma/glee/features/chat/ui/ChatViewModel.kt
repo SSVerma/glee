@@ -259,9 +259,7 @@ class ChatViewModel(
     private suspend fun loadModel(model: ModelInfo) {
         val path = appDataDir.resolve("${model.id}.litertlm")
         val currentConfig = _uiState.value.modelConfig
-        _uiState.update { it.copy(isInitializing = true, isModelReady = false) }
-
-        // Status update for UI if needed, though we now have isInitializing
+        _uiState.update { it.copy(isInitializing = true, isModelReady = false, loadError = null) }
 
         val result = withContext(Dispatchers.Default) {
             engine.loadModel(
@@ -285,7 +283,14 @@ class ChatViewModel(
             delay(1000)
             _uiState.update { it.copy(streamingContent = "") }
         } else {
-            _uiState.update { it.copy(isInitializing = false, isModelReady = false) }
+            val error = result.exceptionOrNull()
+            _uiState.update { 
+                it.copy(
+                    isInitializing = false, 
+                    isModelReady = false,
+                    loadError = error?.message ?: "Unknown error while loading model"
+                ) 
+            }
         }
     }
 

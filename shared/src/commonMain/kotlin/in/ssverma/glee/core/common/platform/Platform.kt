@@ -3,11 +3,7 @@ package `in`.ssverma.glee.core.common.platform
 import io.github.vinceglb.filekit.core.PlatformFile
 
 enum class PlatformType {
-    Android,
-    Ios,
-    Jvm,
-    Js,
-    WasmJs
+    Android, Ios, Jvm, WasmJs, Js
 }
 
 expect fun getPlatformType(): PlatformType
@@ -21,3 +17,8 @@ expect fun PlatformFile.toCoilPath(): String?
  * Returns the absolute path to the file if available on the platform.
  */
 expect fun PlatformFile.getAbsolutePath(): String?
+
+/**
+ * Returns the browser File object if on Wasm/JS target.
+ */
+expect fun PlatformFile.toJsFile(): Any?

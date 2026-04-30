@@ -7,3 +7,5 @@ actual fun getPlatformType(): PlatformType = PlatformType.Jvm
 actual fun PlatformFile.toCoilPath(): String? = path
 
 actual fun PlatformFile.getAbsolutePath(): String? = path
+
+actual fun PlatformFile.toJsFile(): Any? = null

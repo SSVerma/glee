@@ -2,8 +2,10 @@ package `in`.ssverma.glee.core.common.platform
 
 import okio.FileSystem as OkioFS
 import okio.Path
+import okio.Path.Companion.toPath
 import okio.buffer
 import okio.use
+import io.github.vinceglb.filekit.core.PlatformFile
 
 /**
  * Production-ready implementation of FileSystem using Okio.
@@ -84,6 +86,23 @@ class OkioFileSystem(
                     }
                 }
             }
+        }
+    }
+
+    override suspend fun importFile(
+        file: PlatformFile,
+        targetPath: Path,
+        onProgress: ((Float) -> Unit)?
+    ): Result<Unit> {
+        val absolutePath = file.getAbsolutePath()
+        return if (absolutePath != null) {
+            copyFile(absolutePath.toPath(), targetPath, onProgress)
+        } else {
+            // Fallback for cases where path is not available (shouldn't happen on JVM/Android for selected files usually)
+            runCatching { file.readBytes() }.fold(
+                onSuccess = { bytes -> writeBytes(targetPath, bytes, onProgress) },
+                onFailure = { Result.failure(it) }
+            )
         }
     }
 }

@@ -23,11 +23,7 @@ import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
-import `in`.ssverma.glee.core.common.platform.getAbsolutePath
 import okio.Path
-import okio.Path.Companion.toPath
 import org.jetbrains.compose.resources.getString
 
 class AiModelRepository(
@@ -142,11 +138,13 @@ class AiModelRepository(
         onProgress(0.05f) // Immediate feedback
         return withContext(Dispatchers.Default) {
             try {
-                val absolutePath = file.getAbsolutePath()
                 val fileName = file.name
                 val extension = ".${fileName.substringAfterLast(".", "task")}"
                 val id = "custom-${fileName.substringBeforeLast(".")}-${currentTimeMillis()}"
-                val targetFileName = "$id$extension"
+
+                // We use .litertlm as the standard extension for all imported models 
+                // because the model loader (ChatViewModel) currently expects this.
+                val targetFileName = "$id.litertlm"
                 val targetPath = appDataDir.resolve(targetFileName)
 
                 // Basic validation
@@ -159,26 +157,10 @@ class AiModelRepository(
                 }
 
                 var success = false
-                var fileSizeGb = 0.1f
-
                 try {
-                    if (absolutePath != null) {
-                        // Stream-based copy for JVM/Android (No OOM)
-                        fileSystem.copyFile(absolutePath.toPath(), targetPath) { progress ->
-                            onProgress((0.1f + (progress * 0.9f)).coerceIn(0.1f, 1.0f))
-                        }.onSuccess { success = true }.onFailure { throw it }
-                    } else {
-                        // Fallback for Wasm
-                        val bytes = file.readBytes()
-                        if (bytes.isEmpty()) {
-                            return@withContext Result.failure(Exception("Selected file is empty."))
-                        }
-                        onProgress(0.1f)
-                        fileSizeGb = (bytes.size / (1024f * 1024f * 1024f))
-                        fileSystem.writeBytes(targetPath, bytes) { progress ->
-                            onProgress((0.1f + (progress * 0.9f)).coerceIn(0.1f, 1.0f))
-                        }.onSuccess { success = true }.onFailure { throw it }
-                    }
+                    fileSystem.importFile(file, targetPath) { progress ->
+                        onProgress((0.1f + (progress * 0.9f)).coerceIn(0.1f, 1.0f))
+                    }.onSuccess { success = true }.onFailure { throw it }
                 } finally {
                     if (!success) {
                         fileSystem.delete(targetPath)
@@ -191,9 +173,9 @@ class AiModelRepository(
                     description = getString(resource = Res.string.imported_model_desc, fileName),
                     bestFor = getString(resource = Res.string.custom_inference),
                     resourceUsage = getString(resource = Res.string.depends_on_model_size),
-                    url = extension,
+                    url = ".litertlm",
                     infoUrl = "",
-                    sizeGb = fileSizeGb,
+                    sizeGb = 0.1f, // PlatformFile.size is not available in the current version
                     supportsVision = extension.contains("task") || extension.contains("litertlm"),
                     isCustom = true
                 )
@@ -202,8 +184,8 @@ class AiModelRepository(
                 saveCustomModels()
 
                 Result.success(model)
-            } catch (e: Exception) {
-                Result.failure(e)
+            } catch (e: Throwable) {
+                Result.failure(Exception(e.message, e))
             }
         }
     }

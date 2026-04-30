@@ -47,7 +47,8 @@ data class ChatState(
     val isRecordingVoice: Boolean = false,
     val isImporting: Boolean = false,
     val importProgress: Float = 0f,
-    val importError: String? = null
+    val importError: String? = null,
+    val loadError: String? = null
 )
 
 sealed interface ChatIntent {

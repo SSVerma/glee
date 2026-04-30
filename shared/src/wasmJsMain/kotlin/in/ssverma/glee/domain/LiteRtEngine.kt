@@ -12,9 +12,13 @@ import kotlinx.coroutines.flow.callbackFlow
 import okio.Path.Companion.toPath
 import kotlin.js.Promise
 
+// Caching MediaPipe initialization to avoid redundant downloads/initialization on every model load
+private var cachedMpGenAi: JsAny? = null
+private var cachedGenaiFileset: JsAny? = null
+
 @JsFun(
     """
-async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, maxNumImages) {
+async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, maxNumImages, cachedObjects) {
     console.log("[Glee] Initializing MediaPipe GenAI...");
     
     try {
@@ -22,14 +26,23 @@ async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, 
             throw new Error("WebGPU is NOT supported or enabled in your browser.");
         }
         
-        console.log("[Glee] Importing MediaPipe GenAI library...");
-        const mpGenAi = await eval('import("https://esm.sh/@mediapipe/tasks-genai")');
+        let mpGenAi = cachedObjects.mpGenAi;
+        if (!mpGenAi) {
+            console.log("[Glee] Importing MediaPipe GenAI library from esm.sh...");
+            mpGenAi = await eval('import("https://esm.sh/@mediapipe/tasks-genai")');
+            cachedObjects.mpGenAi = mpGenAi;
+        }
+
         const { FilesetResolver, LlmInference } = mpGenAi;
         
-        console.log("[Glee] Resolving GenAI WASM files...");
-        const genaiFileset = await FilesetResolver.forGenAiTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm"
-        );
+        let genaiFileset = cachedObjects.genaiFileset;
+        if (!genaiFileset) {
+            console.log("[Glee] Resolving GenAI WASM files from CDN...");
+            genaiFileset = await FilesetResolver.forGenAiTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm"
+            );
+            cachedObjects.genaiFileset = genaiFileset;
+        }
         
         const dir = await navigator.storage.getDirectory();
         const fileHandle = await dir.getFileHandle(fileName);
@@ -41,7 +54,7 @@ async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, 
             baseOptions: {
                 modelAssetPath: url
             },
-            maxTokens: 1024, // Reasonable default for better performance
+            maxTokens: 1024,
             temperature: temperature,
             topK: topK,
             topP: topP || 1.0,
@@ -53,18 +66,24 @@ async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, 
         return llmInference;
     } catch (e) {
         console.error("[Glee] LiteRtEngine Load Error:", e);
-        throw e;
+        let message = e.message || "Unknown error during model initialization";
+        if (message.includes("No model format matched")) {
+            message = "Unsupported model format. Please ensure you are importing a valid MediaPipe GenAI model (.task, .litertlm, or .bin).";
+        } else if (message.includes("WebGPU")) {
+            message = "WebGPU is not available. Please ensure your browser supports WebGPU and it is enabled.";
+        }
+        throw new Error(message);
     }
 }
 """
 )
-
 external fun createMediaPipeLlmInferenceJs(
     fileName: String,
     temperature: Float,
     topK: Int,
     topP: Float,
-    maxNumImages: Int
+    maxNumImages: Int,
+    cachedObjects: JsAny
 ): Promise<JsAny?>
 
 @JsFun(
@@ -90,7 +109,6 @@ async function generateResponseJs(llmInference, prompt, onChunk) {
 }
 """
 )
-
 external fun generateResponseJs(
     llmInference: JsAny,
     prompt: String,
@@ -106,8 +124,16 @@ function closeLlmInferenceJs(llmInference) {
 }
 """
 )
-
 external fun closeLlmInferenceJs(llmInference: JsAny)
+
+@JsFun("(obj, key, value) => { obj[key] = value; }")
+private external fun jsPut(obj: JsAny, key: JsString, value: JsAny)
+
+@JsFun("(obj, key) => obj[key]")
+private external fun jsGet(obj: JsAny, key: JsString): JsAny?
+
+@JsFun("() => ({})")
+private external fun createJsObject(): JsAny
 
 actual class LiteRtEngine actual constructor() : AiEngine {
 
@@ -116,13 +142,25 @@ actual class LiteRtEngine actual constructor() : AiEngine {
     actual override suspend fun loadModel(config: ModelConfig): Result<Unit> {
         return try {
             val fileName = config.modelPath.toPath().name
-            llmInference = createMediaPipeLlmInferenceJs(
+
+            val cache = createJsObject()
+            cachedMpGenAi?.let { jsPut(cache, "mpGenAi".toJsString(), it) }
+            cachedGenaiFileset?.let { jsPut(cache, "genaiFileset".toJsString(), it) }
+
+            val result = createMediaPipeLlmInferenceJs(
                 fileName = fileName,
                 temperature = config.temperature,
                 topK = config.topK,
-                topP = 0.95f, // Default topP for smoother generation
-                maxNumImages = config.maxNumImages
-            ).await()
+                topP = 0.95f,
+                maxNumImages = config.maxNumImages,
+                cachedObjects = cache
+            ).await<JsAny?>()
+
+            // Update cache after successful load
+            cachedMpGenAi = jsGet(cache, "mpGenAi".toJsString())
+            cachedGenaiFileset = jsGet(cache, "genaiFileset".toJsString())
+
+            llmInference = result
             Result.success(Unit)
         } catch (e: Throwable) {
             Result.failure(e)
@@ -157,7 +195,6 @@ actual class LiteRtEngine actual constructor() : AiEngine {
 
     actual override fun setSystemPrompt(prompt: String) {
         // MediaPipe Tasks GenAI currently doesn't expose system prompt explicitly.
-        // It relies on standard formatted chat prompt (which AiChatManager usually formats).
     }
 
     actual override fun setSkills(skills: List<AiSkill>) {

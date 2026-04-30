@@ -1,6 +1,7 @@
 package `in`.ssverma.glee.core.common.platform
 
 import okio.Path
+import io.github.vinceglb.filekit.core.PlatformFile
 
 interface GleeFileSystem {
     val appDataDir: Path
@@ -8,6 +9,7 @@ interface GleeFileSystem {
     suspend fun writeFile(path: Path, content: String): Result<Unit>
     suspend fun writeBytes(path: Path, bytes: ByteArray, onProgress: ((Float) -> Unit)? = null): Result<Unit>
     suspend fun copyFile(source: Path, target: Path, onProgress: ((Float) -> Unit)? = null): Result<Unit>
+    suspend fun importFile(file: PlatformFile, targetPath: Path, onProgress: ((Float) -> Unit)? = null): Result<Unit>
     suspend fun listFiles(path: Path): Result<List<Path>>
     suspend fun exists(path: Path): Boolean
     suspend fun delete(path: Path): Result<Unit>
