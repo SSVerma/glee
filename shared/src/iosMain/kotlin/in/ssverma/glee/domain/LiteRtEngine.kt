@@ -1,7 +1,8 @@
 package `in`.ssverma.glee.domain
 
-import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import `in`.ssverma.glee.features.chat.domain.model.AiSkill
+import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
+import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -12,9 +13,9 @@ actual class LiteRtEngine actual constructor() : AiEngine {
 
     actual override fun generateResponse(
         prompt: String,
-        files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile>
+        files: List<AttachedFile>
     ): Flow<AiChunk> {
-        return flow { 
+        return flow {
             emit(AiChunk("iOS LiteRT implementation coming soon...", isFinal = true))
         }
     }

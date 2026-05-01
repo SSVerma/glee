@@ -1,7 +1,5 @@
 package `in`.ssverma.glee.features.settings
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,8 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
@@ -23,16 +19,13 @@ import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ModelTraining
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -44,15 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.about
 import glee.shared.generated.resources.adaptive_colors
@@ -158,7 +143,11 @@ fun SettingsScreen(
                 )
 
                 DeveloperCard(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+
+                GithubCard(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
 
                 Spacer(Modifier.height(32.dp))
@@ -173,98 +162,6 @@ fun SettingsScreen(
                     showThemeSheet = false
                 },
                 onDismiss = { showThemeSheet = false }
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DeveloperCard(modifier: Modifier = Modifier) {
-    val uriHandler = LocalUriHandler.current
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val containerColor = MaterialTheme.colorScheme.surface
-
-    OutlinedCard(
-        onClick = { uriHandler.openUri("https://x.com/ssverma1916") },
-        modifier = modifier
-            .fillMaxWidth()
-            .drawBehind {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(primaryColor.copy(alpha = 0.12f), Color.Transparent),
-                        center = center,
-                        radius = size.maxDimension * 0.8f
-                    ),
-                    radius = size.maxDimension / 2,
-                    center = center
-                )
-            },
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f)),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = containerColor
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.tertiary
-                            )
-                        )
-                    )
-                    .padding(2.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                AsyncImage(
-                    model = "https://pbs.twimg.com/profile_images/1807349302164934656/xELoSQEH_400x400.jpg",
-                    contentDescription = "SS Verma",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clip(CircleShape)
-                )
-            }
-
-            Spacer(Modifier.width(16.dp))
-
-            Column {
-                Text(
-                    text = "Crafted with ❤️ by",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "SS Verma",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary
-                            )
-                        ),
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Follow",
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                modifier = Modifier.size(20.dp)
             )
         }
     }

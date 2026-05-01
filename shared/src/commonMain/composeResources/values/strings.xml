@@ -164,4 +164,6 @@
     <string name="download_for_desktop">Download for Desktop</string>
     <string name="get_on_play_store">Get it on Play Store</string>
     <string name="continue_on_web">Continue on Web</string>
+    <string name="github_repo">GitHub Repository</string>
+    <string name="open_source_desc">Glee is fully open source. Star us on GitHub!</string>
 </resources>

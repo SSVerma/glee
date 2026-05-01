@@ -9,10 +9,11 @@ import kotlinx.coroutines.await
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import okio.Path.Companion.toPath
 import kotlin.js.Promise
 
-// Caching MediaPipe initialization to avoid redundant downloads/initialization on every model load
+// Caching MediaPipe initialization to avoid redundant downloads/initialization
 private var cachedMpGenAi: JsAny? = null
 private var cachedGenaiFileset: JsAny? = null
 
@@ -28,7 +29,7 @@ async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, 
         
         let mpGenAi = cachedObjects.mpGenAi;
         if (!mpGenAi) {
-            console.log("[Glee] Importing MediaPipe GenAI library from esm.sh...");
+            console.log("[Glee] Importing MediaPipe GenAI library...");
             mpGenAi = await eval('import("https://esm.sh/@mediapipe/tasks-genai")');
             cachedObjects.mpGenAi = mpGenAi;
         }
@@ -37,7 +38,7 @@ async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, 
         
         let genaiFileset = cachedObjects.genaiFileset;
         if (!genaiFileset) {
-            console.log("[Glee] Resolving GenAI WASM files from CDN...");
+            console.log("[Glee] Resolving GenAI WASM files...");
             genaiFileset = await FilesetResolver.forGenAiTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai/wasm"
             );
@@ -49,7 +50,6 @@ async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, 
         const file = await fileHandle.getFile();
         const url = URL.createObjectURL(file);
         
-        console.log("[Glee] Creating LlmInference instance...");
         const llmInference = await LlmInference.createFromOptions(genaiFileset, {
             baseOptions: {
                 modelAssetPath: url
@@ -57,20 +57,19 @@ async function createMediaPipeLlmInferenceJs(fileName, temperature, topK, topP, 
             maxTokens: 1024,
             temperature: temperature,
             topK: topK,
-            topP: topP || 1.0,
+            topP: topP,
             maxNumImages: maxNumImages || 1
         });
         
-        console.log("[Glee] LlmInference initialized successfully!");
         URL.revokeObjectURL(url);
         return llmInference;
     } catch (e) {
         console.error("[Glee] LiteRtEngine Load Error:", e);
         let message = e.message || "Unknown error during model initialization";
         if (message.includes("No model format matched")) {
-            message = "Unsupported model format. Please ensure you are importing a valid MediaPipe GenAI model (.task, .litertlm, or .bin).";
+            message = "Unsupported model format (.task, .litertlm, or .bin required).";
         } else if (message.includes("WebGPU")) {
-            message = "WebGPU is not available. Please ensure your browser supports WebGPU and it is enabled.";
+            message = "WebGPU not available. Check browser settings.";
         }
         throw new Error(message);
     }
@@ -93,13 +92,14 @@ async function generateResponseJs(llmInference, prompt, onChunk) {
     let buffer = "";
     let lastSendTime = Date.now();
     
+    // We await this so the Kotlin side can catch rejections
     await llmInference.generateResponse(prompt, (partialResult, done) => {
         const delta = partialResult.substring(lastLength);
         lastLength = partialResult.length;
         buffer += delta;
         
         const now = Date.now();
-        // Send every 50ms or if it's the final chunk
+        // Throttle UI updates to 50ms to maintain 60fps
         if (now - lastSendTime > 50 || done) {
             onChunk(buffer, done);
             buffer = "";
@@ -156,7 +156,7 @@ actual class LiteRtEngine actual constructor() : AiEngine {
                 cachedObjects = cache
             ).await<JsAny?>()
 
-            // Update cache after successful load
+            // Persist the libraries in the global cache
             cachedMpGenAi = jsGet(cache, "mpGenAi".toJsString())
             cachedGenaiFileset = jsGet(cache, "genaiFileset".toJsString())
 
@@ -171,37 +171,39 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         prompt: String,
         files: List<AttachedFile>
     ): Flow<AiChunk> = callbackFlow {
-        val instance = llmInference
-        if (instance == null) {
+        val instance = llmInference ?: run {
             trySend(AiChunk("Model not loaded.", isFinal = true))
             close()
             return@callbackFlow
         }
 
-        try {
-            generateResponseJs(instance, prompt) { partialResult, done ->
-                trySend(AiChunk(text = partialResult, isFinal = done))
-                if (done) {
-                    close()
-                }
+        // We launch a coroutine to await the JS promise so we can catch crashes
+        val job = launch {
+            try {
+                generateResponseJs(instance, prompt) { partialResult, done ->
+                    val result = trySend(AiChunk(text = partialResult, isFinal = done))
+                    if (done || result.isFailure) {
+                        close()
+                    }
+                }.await<JsAny?>()
+            } catch (e: Throwable) {
+                trySend(AiChunk("Generation Error: ${e.message}", isFinal = true))
+                close(e)
             }
-        } catch (e: Throwable) {
-            trySend(AiChunk("Error: ${e.message}", isFinal = true))
-            close(e)
         }
 
-        awaitClose { }
+        awaitClose {
+            job.cancel()
+        }
     }
 
     actual override fun setSystemPrompt(prompt: String) {
         // MediaPipe Tasks GenAI currently doesn't expose system prompt explicitly.
     }
 
-    actual override fun setSkills(skills: List<AiSkill>) {
-    }
+    actual override fun setSkills(skills: List<AiSkill>) {}
 
-    actual override suspend fun clearConversation() {
-    }
+    actual override suspend fun clearConversation() {}
 
     actual override suspend fun close() {
         llmInference?.let {

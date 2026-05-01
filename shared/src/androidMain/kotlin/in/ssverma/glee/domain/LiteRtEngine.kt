@@ -7,9 +7,9 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
-import com.google.ai.edge.litertlm.LiteRtLmJniException
-import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import `in`.ssverma.glee.features.chat.domain.model.AiSkill
+import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
+import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -101,13 +101,12 @@ actual class LiteRtEngine actual constructor() : AiEngine {
     }
 
     actual override fun generateResponse(
-        prompt: String, 
-        files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile>
+        prompt: String,
+        files: List<AttachedFile>
     ): Flow<AiChunk> = flow {
         mutex.withLock {
             val conv = conversation
             if (conv == null) {
-                Log.e("LiteRtEngine", "Conversation is null during generation request")
                 emit(
                     AiChunk(
                         text = "Error: Engine not ready. Please try reloading the model.",
@@ -171,12 +170,11 @@ actual class LiteRtEngine actual constructor() : AiEngine {
                         }
                     }
                 }
-                
+
                 if (receivedChunks == 0) {
                     emit(AiChunk(text = "The model produced no response.", isFinal = false))
                 }
             } catch (e: Exception) {
-                Log.e("LiteRtEngine", "Error during generation", e)
                 emit(AiChunk(text = "Error: ${e.message}", isFinal = false))
             }
             emit(AiChunk(text = "", isFinal = true))

@@ -1,7 +1,8 @@
 package `in`.ssverma.glee.domain
 
-import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import `in`.ssverma.glee.features.chat.domain.model.AiSkill
+import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
+import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import `in`.ssverma.glee.features.chat.domain.model.ToolCall
 import kotlinx.coroutines.flow.Flow
 
@@ -11,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 interface AiEngine {
     suspend fun loadModel(config: ModelConfig): Result<Unit>
 
-    fun generateResponse(prompt: String, files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile> = emptyList()): Flow<AiChunk>
+    fun generateResponse(prompt: String, files: List<AttachedFile> = emptyList()): Flow<AiChunk>
 
     fun setSystemPrompt(prompt: String)
 
