@@ -112,6 +112,10 @@ object ProjectConfig {
         val appName = "$BASE_APP_NAME$appNameSuffix"
         val applicationId = "$BASE_PACKAGE_NAME$suffix"
 
+        val compileSdk = findVersionFromToml(projectDir, "android-compileSdk", 36)
+        val minSdk = findVersionFromToml(projectDir, "android-minSdk", 24)
+        val targetSdk = findVersionFromToml(projectDir, "android-targetSdk", 36)
+
         return AppBuildConfig(
             buildType = buildType,
             meta = AppMetadata(
@@ -146,9 +150,9 @@ object ProjectConfig {
             android = AndroidConfig(
                 applicationId = applicationId,
                 namespace = BASE_PACKAGE_NAME,
-                compileSdk = 36,
-                minSdk = 24,
-                targetSdk = 36,
+                compileSdk = compileSdk,
+                minSdk = minSdk,
+                targetSdk = targetSdk,
                 versionCode = buildNumber,
                 versionName = version
             ),
@@ -160,5 +164,14 @@ object ProjectConfig {
                 pageTitle = appName
             )
         )
+    }
+
+    private fun findVersionFromToml(projectDir: File, key: String, default: Int): Int {
+        val tomlFile = File(projectDir, "gradle/libs.versions.toml")
+        if (!tomlFile.exists()) return default
+
+        val tomlContent = tomlFile.readText()
+        val regex = Regex("""$key\s*=\s*"([^"]+)"""")
+        return regex.find(tomlContent)?.groupValues?.get(1)?.toIntOrNull() ?: default
     }
 }
