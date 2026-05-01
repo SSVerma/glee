@@ -36,11 +36,20 @@ sealed interface ModelDownloadStatus {
 
 @Immutable
 @Serializable
+enum class BackendType {
+    Auto,
+    Npu,
+    Gpu,
+    Cpu
+}
+
+@Immutable
+@Serializable
 data class GleeModelConfig(
     val temperature: Float = 0.7f,
     val topK: Int = 40,
     val topP: Float = 0.95f,
-    val useGpu: Boolean = false,
+    val preferredBackend: BackendType = BackendType.Auto,
     val enableThinking: Boolean = false,
     val isAgentic: Boolean = false
 )
@@ -50,6 +59,6 @@ data class ModelConfig(
     val modelPath: String,
     val temperature: Float = 0.7f,
     val topK: Int = 40,
-    val useGpu: Boolean = false,
+    val preferredBackend: BackendType = BackendType.Auto,
     val maxNumImages: Int = 0
 )

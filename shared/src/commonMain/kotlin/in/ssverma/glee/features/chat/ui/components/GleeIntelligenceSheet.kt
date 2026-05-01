@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -27,7 +31,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,8 +44,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import glee.shared.generated.resources.Res
+import glee.shared.generated.resources.backend_auto
+import glee.shared.generated.resources.backend_cpu
+import glee.shared.generated.resources.backend_gpu
+import glee.shared.generated.resources.backend_npu
 import glee.shared.generated.resources.done
 import glee.shared.generated.resources.intelligence
+import glee.shared.generated.resources.model_backend
+import glee.shared.generated.resources.model_backend_info
 import glee.shared.generated.resources.model_config
 import glee.shared.generated.resources.restore_defaults
 import glee.shared.generated.resources.system_prompt
@@ -51,12 +60,12 @@ import glee.shared.generated.resources.temperature
 import glee.shared.generated.resources.temperature_info
 import glee.shared.generated.resources.top_k
 import glee.shared.generated.resources.top_k_info
-import glee.shared.generated.resources.use_gpu
-import glee.shared.generated.resources.use_gpu_info
+import `in`.ssverma.glee.features.chat.domain.model.BackendType
 import `in`.ssverma.glee.features.chat.domain.model.GleeModelConfig
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GleeIntelligenceSheet(
     config: GleeModelConfig,
@@ -148,45 +157,37 @@ fun GleeIntelligenceSheet(
                     }
                 )
 
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.fillMaxWidth()
+                SheetSection(
+                    title = stringResource(Res.string.model_backend),
+                    onInfoClick = {
+                        infoTitle = "Hardware Accelerator"
+                        infoText = Res.string.model_backend_info
+                    }
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.use_gpu),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            IconButton(
-                                onClick = {
-                                    infoTitle = "Use GPU"
-                                    infoText = Res.string.use_gpu_info
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Info,
-                                    null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = config.useGpu,
-                            onCheckedChange = { onConfigChange(config.copy(useGpu = it)) }
+                        BackendChip(
+                            label = stringResource(Res.string.backend_auto),
+                            selected = config.preferredBackend == BackendType.Auto,
+                            onClick = { onConfigChange(config.copy(preferredBackend = BackendType.Auto)) }
+                        )
+                        BackendChip(
+                            label = "NPU",
+                            selected = config.preferredBackend == BackendType.Npu,
+                            onClick = { onConfigChange(config.copy(preferredBackend = BackendType.Npu)) }
+                        )
+                        BackendChip(
+                            label = "GPU",
+                            selected = config.preferredBackend == BackendType.Gpu,
+                            onClick = { onConfigChange(config.copy(preferredBackend = BackendType.Gpu)) }
+                        )
+                        BackendChip(
+                            label = "CPU",
+                            selected = config.preferredBackend == BackendType.Cpu,
+                            onClick = { onConfigChange(config.copy(preferredBackend = BackendType.Cpu)) }
                         )
                     }
                 }
@@ -223,6 +224,27 @@ fun GleeIntelligenceSheet(
             )
         }
     }
+}
+
+@Composable
+private fun BackendChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        shape = RoundedCornerShape(12.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primary,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        border = null
+    )
 }
 
 @Composable

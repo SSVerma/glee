@@ -20,7 +20,7 @@ class GleeSettings(private val settings: ObservableSettings) {
         private const val KEY_SYSTEM_PROMPT = "system_prompt"
         private const val KEY_MODEL_TEMP = "model_temp"
         private const val KEY_MODEL_TOP_K = "model_top_k"
-        private const val KEY_MODEL_USE_GPU = "model_use_gpu"
+        private const val KEY_MODEL_BACKEND = "model_backend"
         private const val KEY_MODEL_IS_AGENTIC = "model_is_agentic"
         private const val KEY_SELECTED_MODEL_ID = "selected_model_id"
     }
@@ -54,10 +54,10 @@ class GleeSettings(private val settings: ObservableSettings) {
     }
 
     @OptIn(ExperimentalSettingsApi::class)
-    val useGpu: Flow<Boolean> = flowSettings.getBooleanFlow(KEY_MODEL_USE_GPU, false)
+    val preferredBackend: Flow<String> = flowSettings.getStringFlow(KEY_MODEL_BACKEND, "Auto")
 
-    fun setUseGpu(useGpu: Boolean) {
-        settings[KEY_MODEL_USE_GPU] = useGpu
+    fun setPreferredBackend(backend: String) {
+        settings[KEY_MODEL_BACKEND] = backend
     }
 
     @OptIn(ExperimentalSettingsApi::class)
@@ -68,24 +68,27 @@ class GleeSettings(private val settings: ObservableSettings) {
     }
 
     @OptIn(ExperimentalSettingsApi::class)
-    val shouldShowIncognitoInfo: Flow<Boolean> = flowSettings.getBooleanFlow(KEY_SHOW_INCOGNITO_INFO, true)
+    val shouldShowIncognitoInfo: Flow<Boolean> =
+        flowSettings.getBooleanFlow(KEY_SHOW_INCOGNITO_INFO, true)
 
     fun setShouldShowIncognitoInfo(show: Boolean) {
         settings[KEY_SHOW_INCOGNITO_INFO] = show
     }
 
     @OptIn(ExperimentalSettingsApi::class)
-    val themeMode: Flow<ThemeMode> = flowSettings.getStringFlow(KEY_THEME_MODE, ThemeMode.System.name)
-        .map { name -> 
-            runCatching { ThemeMode.valueOf(name) }.getOrDefault(ThemeMode.System)
-        }
+    val themeMode: Flow<ThemeMode> =
+        flowSettings.getStringFlow(KEY_THEME_MODE, ThemeMode.System.name)
+            .map { name ->
+                runCatching { ThemeMode.valueOf(name) }.getOrDefault(ThemeMode.System)
+            }
 
     fun setThemeMode(mode: ThemeMode) {
         settings[KEY_THEME_MODE] = mode.name
     }
 
     @OptIn(ExperimentalSettingsApi::class)
-    val isAdaptiveColorsEnabled: Flow<Boolean> = flowSettings.getBooleanFlow(KEY_ADAPTIVE_COLORS, true)
+    val isAdaptiveColorsEnabled: Flow<Boolean> =
+        flowSettings.getBooleanFlow(KEY_ADAPTIVE_COLORS, false)
 
     fun setAdaptiveColorsEnabled(enabled: Boolean) {
         settings[KEY_ADAPTIVE_COLORS] = enabled

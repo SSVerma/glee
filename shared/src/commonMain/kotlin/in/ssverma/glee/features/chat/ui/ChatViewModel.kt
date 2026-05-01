@@ -17,6 +17,7 @@ import `in`.ssverma.glee.features.chat.data.repository.AiModelRepository
 import `in`.ssverma.glee.features.chat.domain.ChatSuggestionProvider
 import `in`.ssverma.glee.features.chat.domain.model.AiTool
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
+import `in`.ssverma.glee.features.chat.domain.model.BackendType
 import `in`.ssverma.glee.features.chat.domain.model.MessageList
 import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
@@ -52,13 +53,13 @@ class ChatViewModel(
     private val _uiState = MutableStateFlow(ChatState())
     val uiState: StateFlow<ChatState> = _uiState.asStateFlow()
 
-    private var streamingJob: kotlinx.coroutines.Job? = null
-    private var voiceRecordingJob: kotlinx.coroutines.Job? = null
+    private var streamingJob: Job? = null
+    private var voiceRecordingJob: Job? = null
 
     private var currentSystemPrompt: String = ""
     private var currentTemperature: Float = 0.7f
     private var currentTopK: Int = 40
-    private var currentUseGpu: Boolean = false
+    private var currentBackend: BackendType = BackendType.Auto
     private var isAgentic: Boolean = false
 
     init {
@@ -126,21 +127,22 @@ class ChatViewModel(
                 settings.systemPrompt,
                 settings.temperature,
                 settings.topK,
-                settings.useGpu,
+                settings.preferredBackend,
                 settings.isAgentic
-            ) { systemPrompt, temp, topK, useGpu, agentic ->
+            ) { systemPrompt, temp, topK, backend, agentic ->
                 val defaultPrompt = getString(Res.string.default_system_prompt)
                 currentSystemPrompt = systemPrompt ?: defaultPrompt
                 currentTemperature = temp
                 currentTopK = topK
                 
-                val gpuChanged = currentUseGpu != useGpu
-                currentUseGpu = useGpu
+                val preferredBackend = runCatching { BackendType.valueOf(backend) }.getOrDefault(BackendType.Auto)
+                val backendChanged = currentBackend != preferredBackend
+                currentBackend = preferredBackend
                 isAgentic = agentic
                 
                 chatManager.updateSystemPrompt(currentSystemPrompt)
                 
-                if (gpuChanged) {
+                if (backendChanged) {
                     _uiState.value.selectedModel?.let { model ->
                         if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
                             loadModel(model)
@@ -187,7 +189,7 @@ class ChatViewModel(
                     modelPath = path.toString(),
                     temperature = currentTemperature,
                     topK = currentTopK,
-                    useGpu = currentUseGpu,
+                    preferredBackend = currentBackend,
                     maxNumImages = if (model.supportsVision) 1 else 0
                 )
             )

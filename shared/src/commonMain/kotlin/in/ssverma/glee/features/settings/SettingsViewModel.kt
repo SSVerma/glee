@@ -6,6 +6,7 @@ import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.default_system_prompt
 import `in`.ssverma.glee.core.preferences.GleeSettings
 import `in`.ssverma.glee.features.chat.domain.usecase.AiChatManager
+import `in`.ssverma.glee.features.chat.domain.model.BackendType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,9 +47,9 @@ class SettingsViewModel(
                 settings.systemPrompt,
                 settings.temperature,
                 settings.topK,
-                settings.useGpu,
+                settings.preferredBackend,
                 settings.isAgentic
-            ) { systemPrompt, temp, topK, useGpu, isAgentic ->
+            ) { systemPrompt, temp, topK, backend, isAgentic ->
                 val defaultPrompt = getString(Res.string.default_system_prompt)
                 _uiState.update {
                     it.copy(
@@ -56,7 +57,7 @@ class SettingsViewModel(
                         modelConfig = it.modelConfig.copy(
                             temperature = temp,
                             topK = topK,
-                            useGpu = useGpu,
+                            preferredBackend = runCatching { BackendType.valueOf(backend) }.getOrDefault(BackendType.Auto),
                             isAgentic = isAgentic
                         )
                     )
@@ -75,7 +76,7 @@ class SettingsViewModel(
                 settings.setSystemPrompt(state.systemPrompt)
                 settings.setTemperature(state.modelConfig.temperature)
                 settings.setTopK(state.modelConfig.topK)
-                settings.setUseGpu(state.modelConfig.useGpu)
+                settings.setPreferredBackend(state.modelConfig.preferredBackend.name)
                 settings.setIsAgentic(state.modelConfig.isAgentic)
                 chatManager.updateSystemPrompt(state.systemPrompt)
             }

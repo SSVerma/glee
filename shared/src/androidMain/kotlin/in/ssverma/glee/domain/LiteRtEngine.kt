@@ -1,5 +1,6 @@
 package `in`.ssverma.glee.domain
 
+import android.content.Context
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
@@ -7,8 +8,10 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import `in`.ssverma.glee.core.common.platform.getSystemMetrics
 import `in`.ssverma.glee.features.chat.domain.model.AiTool
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
+import `in`.ssverma.glee.features.chat.domain.model.BackendType
 import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -17,8 +20,11 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-actual class LiteRtEngine actual constructor() : AiEngine {
+actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
+    private val context: Context by inject()
     private var engine: Engine? = null
     private var conversation: Conversation? = null
     private var systemPrompt: String = ""
@@ -36,56 +42,162 @@ actual class LiteRtEngine actual constructor() : AiEngine {
 
                 Log.d(
                     "LiteRtEngine",
-                    "Loading model (GPU: ${config.useGpu}) from: ${config.modelPath}"
+                    "Loading model with preferred backend: ${config.preferredBackend} from: ${config.modelPath}"
                 )
                 closeInternal()
 
-                // Robust initialization with fallback
-                val newEngine = if (config.useGpu) {
-                    try {
-                        Log.d("LiteRtEngine", "Attempting GPU initialization...")
-                        val gpuConfig = EngineConfig(
-                            modelPath = config.modelPath,
-                            backend = Backend.GPU(),
-                            visionBackend = if (config.maxNumImages > 0) Backend.GPU() else null,
-                            maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
+                val engineInstance = when (config.preferredBackend) {
+                    BackendType.Npu -> {
+                        tryInitializeNpu(config) ?: tryInitializeGpu(config) ?: initializeCpuEngine(
+                            config.modelPath,
+                            config.maxNumImages
                         )
-                        val e = Engine(gpuConfig)
-                        e.initialize()
-                        e
-                    } catch (e: Throwable) {
-                        Log.w(
-                            "LiteRtEngine",
-                            "GPU initialization failed, falling back to CPU: ${e.message}"
+                    }
+
+                    BackendType.Gpu -> {
+                        tryInitializeGpu(config) ?: initializeCpuEngine(
+                            config.modelPath,
+                            config.maxNumImages
                         )
+                    }
+
+                    BackendType.Cpu -> {
                         initializeCpuEngine(config.modelPath, config.maxNumImages)
                     }
-                } else {
-                    Log.d("LiteRtEngine", "CPU requested, bypassing GPU")
-                    initializeCpuEngine(config.modelPath, config.maxNumImages)
+
+                    BackendType.Auto -> {
+                        // Priority: Stability Check -> NPU -> GPU -> CPU
+                        if (isLowConstraintDevice()) {
+                            initializeCpuEngine(config.modelPath, config.maxNumImages)
+                        } else {
+                            tryInitializeNpu(config)
+                                ?: tryInitializeGpu(config)
+                                ?: initializeCpuEngine(config.modelPath, config.maxNumImages)
+                        }
+                    }
                 }
 
-                engine = newEngine
-                conversation = newEngine.createConversation()
+                engine = engineInstance
+                conversation = engineInstance.createConversation()
                 Log.d("LiteRtEngine", "Model and Conversation initialized successfully")
                 Unit
             }.onFailure {
                 Log.e("LiteRtEngine", "Critical failure during model load", it)
-                closeInternal() // Ensure state is clean on failure
+                closeInternal()
             }
         }
     }
 
+    private fun tryInitializeNpu(config: ModelConfig): Engine? {
+        if (android.os.Build.VERSION.SDK_INT < 31) {
+            Log.d("LiteRtEngine", "NPU not supported on API < 31")
+            return null
+        }
+
+        val nativeLibDir = context.applicationInfo.nativeLibraryDir
+        val dispatchLibs = listOf(
+            "libLiteRtDispatch_Qualcomm.so",
+            "libLiteRtDispatch_MTK.so",
+            "libLiteRtDispatch_Google.so"
+        )
+        val hasDispatchLib = dispatchLibs.any { java.io.File(nativeLibDir, it).exists() }
+
+        if (!hasDispatchLib) {
+            Log.d(
+                "LiteRtEngine",
+                "No NPU dispatch libraries found in $nativeLibDir. Skipping NPU to avoid native errors."
+            )
+            return null
+        }
+
+        return try {
+            Log.d("LiteRtEngine", "Attempting NPU initialization...")
+            val npuBackend = Backend.NPU(nativeLibraryDir = nativeLibDir)
+            val npuConfig = EngineConfig(
+                modelPath = config.modelPath,
+                backend = npuBackend,
+                visionBackend = if (config.maxNumImages > 0) npuBackend else null,
+                maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
+            )
+            val e = Engine(npuConfig)
+            e.initialize()
+            Log.d("LiteRtEngine", "NPU initialization successful")
+            e
+        } catch (e: Throwable) {
+            Log.w("LiteRtEngine", "NPU initialization failed: ${e.message}")
+            null
+        }
+    }
+
+    private fun tryInitializeGpu(config: ModelConfig): Engine? {
+        return try {
+            Log.d("LiteRtEngine", "Attempting GPU initialization...")
+            val gpuBackend = Backend.GPU()
+            val gpuConfig = EngineConfig(
+                modelPath = config.modelPath,
+                backend = gpuBackend,
+                visionBackend = if (config.maxNumImages > 0) gpuBackend else null,
+                maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
+            )
+            val e = Engine(gpuConfig)
+            e.initialize()
+            Log.d("LiteRtEngine", "GPU initialization successful")
+            e
+        } catch (e: Throwable) {
+            Log.w("LiteRtEngine", "GPU initialization failed: ${e.message}")
+            null
+        }
+    }
+
     private fun initializeCpuEngine(modelPath: String, maxNumImages: Int): Engine {
+        val processors = Runtime.getRuntime().availableProcessors()
+        val optimalThreads = if (processors > 4) 4 else processors
+        Log.d("LiteRtEngine", "Initializing CPU engine ($optimalThreads threads)...")
         val cpuConfig = EngineConfig(
             modelPath = modelPath,
-            backend = Backend.CPU(),
+            backend = Backend.CPU(numOfThreads = optimalThreads),
             visionBackend = if (maxNumImages > 0) Backend.CPU() else null,
             maxNumImages = if (maxNumImages > 0) maxNumImages else null
         )
         val e = Engine(cpuConfig)
         e.initialize()
+        Log.d("LiteRtEngine", "CPU initialization successful")
         return e
+    }
+
+    private fun isLowConstraintDevice(): Boolean {
+        return true // TODO: need to fix
+//        // 1. RAM check: Devices with < 6.5GB RAM (effectively 6GB tier) struggle with LLM GPU allocation
+//        val totalRamGb = getSystemMetrics().getTotalRamGb()
+//        if (totalRamGb < 6.5f) {
+//            Log.d("LiteRtEngine", "Low RAM device detected ($totalRamGb GB). Forcing CPU for stability.")
+//            return true
+//        }
+//
+//        // 2. Hardware check: Detect chipsets with known GPU stability issues for LiteRT-LM
+//        val hardware = android.os.Build.HARDWARE.lowercase()
+//        val board = android.os.Build.BOARD.lowercase()
+//        val soc = hardware + board
+//
+//        // Pixel 6 (G1), Pixel 7 (G2) frequently hang or produce gibberish in GPU mode
+//        val isTensorG1orG2 = soc.contains("gs101") || // Tensor G1
+//                soc.contains("gs201") || // Tensor G2
+//                soc.contains("whitechapel") // Early Tensor reference
+//
+//        if (isTensorG1orG2) {
+//            Log.d("LiteRtEngine", "Tensor G1/G2 detected ($soc). Forcing CPU for stability.")
+//            return true
+//        }
+//
+//        // 3. Mali GPU stability: Many mid-range Mali GPUs struggle with the heavy compute load of LLMs
+//        // and cause UI starvation/hangs.
+//        val isMali = hardware.contains("mali") || board.contains("mali")
+//        if (isMali && totalRamGb < 9f) { // Be conservative with Mali + < 12GB RAM
+//            Log.d("LiteRtEngine", "Mid-range Mali GPU detected on $totalRamGb GB device. Forcing CPU.")
+//            return true
+//        }
+//
+//        return false
     }
 
     actual override suspend fun clearConversation() = mutex.withLock {
