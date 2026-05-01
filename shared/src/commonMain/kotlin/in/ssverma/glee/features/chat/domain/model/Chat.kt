@@ -74,7 +74,7 @@ data class AttachedFile(
 data class ChatMetrics(
     val modelName: String = "",
     val contextUsed: Int = 0,
-    val contextMax: Int = 128000,
+    val contextMax: Int = 32000,
     val ramUsedGb: Float = 0f,
     val ramTotalGb: Float = 0f,
     val latencyMs: Long = 0

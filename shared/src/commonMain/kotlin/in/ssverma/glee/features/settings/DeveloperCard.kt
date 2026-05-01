@@ -114,12 +114,6 @@ fun DeveloperCard(modifier: Modifier = Modifier) {
                     Text(
                         text = "SS Verma",
                         style = MaterialTheme.typography.titleLarge.copy(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.secondary
-                                )
-                            ),
                             fontWeight = FontWeight.ExtraBold
                         )
                     )

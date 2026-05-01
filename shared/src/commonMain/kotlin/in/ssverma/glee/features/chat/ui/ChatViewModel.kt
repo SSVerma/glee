@@ -7,10 +7,10 @@ import glee.shared.generated.resources.default_system_prompt
 import glee.shared.generated.resources.describe_image
 import `in`.ssverma.glee.core.common.currentTimeMillis
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
-import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
-import `in`.ssverma.glee.core.common.platform.getSystemMetrics
-import `in`.ssverma.glee.core.common.platform.getPlatformType
 import `in`.ssverma.glee.core.common.platform.PlatformType
+import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
+import `in`.ssverma.glee.core.common.platform.getPlatformType
+import `in`.ssverma.glee.core.common.platform.getSystemMetrics
 import `in`.ssverma.glee.core.common.platform.toCoilPath
 import `in`.ssverma.glee.core.preferences.GleeSettings
 import `in`.ssverma.glee.domain.AiEngine
@@ -232,12 +232,18 @@ class ChatViewModel(
     private fun deleteModel(model: ModelInfo) {
         viewModelScope.launch {
             modelRepository.deleteModel(model)
-            
+
             val updatedModels = modelRepository.getModelsWithStatus()
             val anyLeft = updatedModels.any { it.downloadStatus == ModelDownloadStatus.Downloaded }
 
             if (!anyLeft) {
-                _uiState.update { it.copy(isModelReady = false, selectedModel = null, currentConversationId = null) }
+                _uiState.update {
+                    it.copy(
+                        isModelReady = false,
+                        selectedModel = null,
+                        currentConversationId = null
+                    )
+                }
                 chatManager.clearChat()
             }
 
@@ -287,22 +293,26 @@ class ChatViewModel(
             _uiState.update { it.copy(streamingContent = "") }
         } else {
             val error = result.exceptionOrNull()
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
-                    isInitializing = false, 
+                    isInitializing = false,
                     isModelReady = false,
                     loadError = error?.message ?: "Unknown error while loading model"
-                ) 
+                )
             }
         }
     }
 
     private fun updateMetrics() {
         _uiState.update { state ->
+            val historyTokens = chatManager.messages.value.sumOf { (it.content.length / 4) + 1 }
+            val systemTokens = state.systemPrompt.length / 4
+
             state.copy(
                 metrics = state.metrics.copy(
                     ramUsedGb = if (state.isModelReady) systemMetrics.getUsedRamGb() else 0f,
-                    ramTotalGb = systemMetrics.getTotalRamGb()
+                    ramTotalGb = systemMetrics.getTotalRamGb(),
+                    contextUsed = historyTokens + systemTokens
                 )
             )
         }
@@ -449,14 +459,20 @@ class ChatViewModel(
 
             is ChatIntent.SetThemeMode -> settings.setThemeMode(intent.mode)
             is ChatIntent.SetAdaptiveColors -> settings.setAdaptiveColorsEnabled(intent.enabled)
-            
+
             ChatIntent.ImportModel -> {
                 _uiState.update { it.copy(importError = null, isImporting = false) }
             }
 
             is ChatIntent.ImportModelFile -> {
                 importJob?.cancel()
-                _uiState.update { it.copy(isImporting = true, importError = null, importProgress = 0f) }
+                _uiState.update {
+                    it.copy(
+                        isImporting = true,
+                        importError = null,
+                        importProgress = 0f
+                    )
+                }
                 importJob = viewModelScope.launch {
                     modelRepository.importModel(intent.file) { progress ->
                         _uiState.update { it.copy(importProgress = progress) }
@@ -465,7 +481,12 @@ class ChatViewModel(
                         initializeModels() // Refresh list
                     }.onFailure { error ->
                         if (error !is CancellationException) {
-                            _uiState.update { it.copy(isImporting = false, importError = error.message) }
+                            _uiState.update {
+                                it.copy(
+                                    isImporting = false,
+                                    importError = error.message
+                                )
+                            }
                         }
                     }
                 }
@@ -636,8 +657,12 @@ class ChatViewModel(
                     val latency = currentTimeMillis() - startTime
                     fullResponse += chunk.text
 
-                    // Estimate tokens: roughly 1 token per 4 chars for English, plus prompt overhead
-                    val estimatedTokens = (fullResponse.length / 4) + (fullPrompt.length / 4)
+                    // Estimate tokens: include history + current response + system prompt
+                    val historyTokens =
+                        chatManager.messages.value.sumOf { (it.content.length / 4) + 1 }
+                    val systemTokens = currentState.systemPrompt.length / 4
+                    val estimatedTokens =
+                        historyTokens + systemTokens + (fullResponse.length / 4) + (fullPrompt.length / 4)
 
                     _uiState.update {
                         it.copy(

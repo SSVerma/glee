@@ -104,10 +104,20 @@ fun GleePerformanceSheet(
                     )
                 }
 
+                val contextValue = if (metrics.contextUsed < 1000) {
+                    "${metrics.contextUsed} / ${metrics.contextMax / 1000}K"
+                } else {
+                    stringResource(
+                        Res.string.context_window_value,
+                        metrics.contextUsed / 1000,
+                        metrics.contextMax / 1000
+                    )
+                }
+
                 PerformanceMetricItem(
                     label = stringResource(Res.string.context_window),
                     icon = Icons.Default.Dns,
-                    value = stringResource(Res.string.context_window_value, metrics.contextUsed / 1000, metrics.contextMax / 1000),
+                    value = contextValue,
                     progress = metrics.contextUsed.toFloat() / metrics.contextMax,
                     color = MaterialTheme.colorScheme.primary
                 )
