@@ -6,7 +6,7 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
-import `in`.ssverma.glee.features.chat.domain.model.AiSkill
+import `in`.ssverma.glee.features.chat.domain.model.AiTool
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import kotlinx.coroutines.Dispatchers
@@ -96,7 +96,7 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         }
     }
 
-    actual override fun setSkills(skills: List<AiSkill>) {
+    actual override fun setSkills(skills: List<AiTool>) {
         // bridge logic
     }
 

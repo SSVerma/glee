@@ -6,7 +6,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,14 +33,12 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,7 +64,6 @@ import glee.shared.generated.resources.ai_disclosure
 import glee.shared.generated.resources.ask_glee
 import glee.shared.generated.resources.attach
 import glee.shared.generated.resources.model_loading
-import glee.shared.generated.resources.model_not_ready_warning
 import glee.shared.generated.resources.select_model
 import glee.shared.generated.resources.tools
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
@@ -94,7 +90,8 @@ fun ChatInputBar(
     modifier: Modifier = Modifier,
 ) {
     var isInputExpanded by remember { mutableStateOf(value = false) }
-    val sendButtonEnabled = (isStreaming || input.isNotBlank() || attachedFiles.isNotEmpty()) && isModelReady
+    val sendButtonEnabled =
+        (isStreaming || input.isNotBlank() || attachedFiles.isNotEmpty()) && isModelReady
 
     LaunchedEffect(input) {
         if (input.isBlank()) {
@@ -107,7 +104,6 @@ fun ChatInputBar(
             tonalElevation = 6.dp,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
         ) {
             Column(
                 modifier = Modifier
@@ -144,9 +140,8 @@ fun ChatInputBar(
                             ) {
                                 if (input.isEmpty()) {
                                     Text(
-                                        text = if (isModelReady) stringResource(Res.string.ask_glee) else stringResource(
-                                            Res.string.model_loading
-                                        ),
+                                        text = if (isModelReady) stringResource(Res.string.ask_glee)
+                                        else stringResource(Res.string.model_loading),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                             alpha = 0.6f
@@ -227,9 +222,8 @@ fun ChatInputBar(
                         label = {
                             Text(
                                 if (isModelReady) (selectedModel?.name
-                                    ?: stringResource(Res.string.select_model)) else stringResource(
-                                    Res.string.select_model
-                                )
+                                    ?: stringResource(Res.string.select_model))
+                                else stringResource(Res.string.select_model)
                             )
                         },
                         leadingIcon = if (isModelReady) {
@@ -252,24 +246,25 @@ fun ChatInputBar(
                             initialValue = 1f,
                             targetValue = if (isRecordingVoice) 1.2f else 1f,
                             animationSpec = infiniteRepeatable(
-                                animation = tween<Float>(500),
+                                animation = tween(500),
                                 repeatMode = RepeatMode.Reverse
                             )
                         )
-                        val color = if (isRecordingVoice) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary
-                        val bgColor = if (isRecordingVoice) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
 
-                        IconButton(
+                        val color = if (isRecordingVoice) MaterialTheme.colorScheme.onErrorContainer
+                        else MaterialTheme.colorScheme.primary
+
+                        OutlinedIconButton(
                             onClick = onToggleVoiceRecording,
+                            border = IconButtonDefaults.outlinedIconButtonBorder(true)
+                                .copy(width = 0.1.dp),
                             modifier = Modifier
-                                .size(40.dp)
                                 .scale(scale)
-                                .background(bgColor, CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Mic,
                                 contentDescription = "Voice Input",
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(20.dp),
                                 tint = color
                             )
                         }
@@ -291,12 +286,12 @@ fun ChatInputBar(
                             disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                             disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         ),
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
-                            if (isStreaming) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send,
-                            stringResource(Res.string.action),
-                            modifier = Modifier.size(20.dp)
+                            imageVector = if (isStreaming) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send,
+                            contentDescription = stringResource(Res.string.action),
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }

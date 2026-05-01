@@ -31,8 +31,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,12 +38,13 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -67,29 +66,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.cancel
-import glee.shared.generated.resources.cancel_download_confirm
-import glee.shared.generated.resources.cancel_download_desc
-import glee.shared.generated.resources.cancel_download_dismiss
-import glee.shared.generated.resources.cancel_download_title
 import glee.shared.generated.resources.copied_to_clipboard
 import glee.shared.generated.resources.delete
 import glee.shared.generated.resources.delete_conversation_desc
 import glee.shared.generated.resources.delete_conversation_title
-import glee.shared.generated.resources.delete_model_desc
-import glee.shared.generated.resources.delete_model_title
 import glee.shared.generated.resources.done
 import glee.shared.generated.resources.dont_show_again
 import glee.shared.generated.resources.incognito_desc
 import glee.shared.generated.resources.incognito_info_title
 import glee.shared.generated.resources.initializing_model_banner
-import glee.shared.generated.resources.suggestion_email
-import glee.shared.generated.resources.suggestion_recipe
-import glee.shared.generated.resources.suggestion_trip
-import glee.shared.generated.resources.suggestion_workout
 import `in`.ssverma.glee.core.ui.components.GleeSidebar
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.MessageList
@@ -101,12 +89,18 @@ import `in`.ssverma.glee.features.chat.ui.components.ChatTopBar
 import `in`.ssverma.glee.features.chat.ui.components.GleeActionMenuSheet
 import `in`.ssverma.glee.features.chat.ui.components.GleeIntelligenceSheet
 import `in`.ssverma.glee.features.chat.ui.components.GleePerformanceSheet
-import `in`.ssverma.glee.features.chat.ui.components.GleeSkillsSheet
+import `in`.ssverma.glee.features.chat.ui.components.GleeToolsSheet
 import `in`.ssverma.glee.features.chat.ui.components.MessageBubble
 import `in`.ssverma.glee.features.chat.ui.components.ModelSelectionContent
 import `in`.ssverma.glee.features.chat.ui.components.StreamingBubble
 import `in`.ssverma.glee.features.chat.ui.components.SuggestionChips
 import `in`.ssverma.glee.features.chat.ui.components.WelcomeHeader
+import `in`.ssverma.glee.features.models.ModelManagementIntent
+import `in`.ssverma.glee.features.models.ModelManagementViewModel
+import `in`.ssverma.glee.features.settings.SettingsIntent
+import `in`.ssverma.glee.features.settings.SettingsViewModel
+import `in`.ssverma.glee.features.skills.ManageSkillsIntent
+import `in`.ssverma.glee.features.skills.ManageToolsViewModel
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -121,15 +115,21 @@ expect fun rememberPermissionLauncher(onResult: (Boolean) -> Unit): () -> Unit
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = koinViewModel(),
+    settingsViewModel: SettingsViewModel = koinViewModel(),
+    modelManagementViewModel: ModelManagementViewModel = koinViewModel(),
+    manageToolsViewModel: ManageToolsViewModel = koinViewModel(),
     onModelManagement: () -> Unit = { },
     onManageSkills: () -> Unit = { },
     onSettings: () -> Unit = { },
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
-    val reversedMessages = remember(uiState.messages) { 
-        MessageList(uiState.messages.asReversed()) 
+    val settingsState by settingsViewModel.uiState.collectAsState()
+    val modelManagementState by modelManagementViewModel.uiState.collectAsState()
+    val manageSkillsState by manageToolsViewModel.uiState.collectAsState()
+
+    val reversedMessages = remember(uiState.messages) {
+        MessageList(uiState.messages.asReversed())
     }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -151,12 +151,12 @@ fun ChatScreen(
         file?.let { viewModel.onIntent(ChatIntent.PickFile(it)) }
     }
 
-    val anyModelDownloaded = remember(uiState.availableModels) {
-        uiState.availableModels.any { it.downloadStatus == ModelDownloadStatus.Downloaded }
+    val anyModelDownloaded = remember(modelManagementState.availableModels) {
+        modelManagementState.availableModels.any { it.downloadStatus == ModelDownloadStatus.Downloaded }
     }
-    
-    val showNoModelBanner = remember(uiState.availableModels, anyModelDownloaded) {
-        uiState.availableModels.isNotEmpty() && !anyModelDownloaded
+
+    val showNoModelBanner = remember(modelManagementState.availableModels, anyModelDownloaded) {
+        modelManagementState.availableModels.isNotEmpty() && !anyModelDownloaded
     }
 
     val permissionLauncher = rememberPermissionLauncher { granted ->
@@ -168,7 +168,10 @@ fun ChatScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.width(300.dp)
+            ) {
                 GleeSidebar(
                     conversations = uiState.conversations,
                     selectedConversationId = uiState.currentConversationId,
@@ -202,7 +205,7 @@ fun ChatScreen(
     ) {
         Box(modifier = modifier.fillMaxSize()) {
             Row(modifier = Modifier.fillMaxSize()) {
-                if (isWide && anyModelDownloaded) {
+                if (isWide) {
                     GleeSidebar(
                         conversations = uiState.conversations,
                         selectedConversationId = uiState.currentConversationId,
@@ -252,7 +255,7 @@ fun ChatScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                if ((isWide || isMedium) && anyModelDownloaded) {
+                if (isWide || isMedium) {
                     VerticalDivider(
                         thickness = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant
@@ -272,10 +275,14 @@ fun ChatScreen(
                             when (sheetType) {
                                 ChatActionSheetType.Root -> {
                                     GleeActionMenuSheet(
-                                        isAgentic = uiState.modelConfig.isAgentic,
+                                        isAgentic = settingsState.modelConfig.isAgentic,
                                         onToggleAgentic = {
-                                            viewModel.onIntent(ChatIntent.UpdateModelConfig(uiState.modelConfig.copy(isAgentic = it)))
-                                            viewModel.onIntent(ChatIntent.SaveIntelligenceConfig)
+                                            settingsViewModel.onIntent(
+                                                SettingsIntent.UpdateModelConfig(
+                                                    settingsState.modelConfig.copy(isAgentic = it)
+                                                )
+                                            )
+                                            settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
                                         },
                                         onSelectAction = { currentActionSheet = it },
                                         modifier = Modifier.fillMaxWidth()
@@ -284,25 +291,25 @@ fun ChatScreen(
 
                                 ChatActionSheetType.Intelligence -> {
                                     GleeIntelligenceSheet(
-                                        config = uiState.modelConfig,
-                                        systemPrompt = uiState.systemPrompt,
+                                        config = settingsState.modelConfig,
+                                        systemPrompt = settingsState.systemPrompt,
                                         onConfigChange = {
-                                            viewModel.onIntent(
-                                                ChatIntent.UpdateModelConfig(it)
+                                            settingsViewModel.onIntent(
+                                                SettingsIntent.UpdateModelConfig(it)
                                             )
                                         },
                                         onUpdateSystemPrompt = {
-                                            viewModel.onIntent(
-                                                ChatIntent.UpdateSystemPrompt(it)
+                                            settingsViewModel.onIntent(
+                                                SettingsIntent.UpdateSystemPrompt(it)
                                             )
                                         },
                                         onRestoreDefaultPrompt = {
-                                            viewModel.onIntent(
-                                                ChatIntent.RestoreDefaultSystemPrompt
+                                            settingsViewModel.onIntent(
+                                                SettingsIntent.RestoreDefaultSystemPrompt
                                             )
                                         },
                                         onSave = {
-                                            viewModel.onIntent(ChatIntent.SaveIntelligenceConfig)
+                                            settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
                                         },
                                         onBack = { currentActionSheet = ChatActionSheetType.Root }
                                     )
@@ -316,10 +323,15 @@ fun ChatScreen(
                                 }
 
                                 ChatActionSheetType.Skills -> {
-                                    GleeSkillsSheet(
-                                        activeSkills = uiState.activeSkills,
+                                    GleeToolsSheet(
+                                        activeSkills = manageSkillsState.activeSkills,
                                         onToggleSkill = { id, enabled ->
-                                            viewModel.onIntent(ChatIntent.ToggleSkill(id, enabled))
+                                            manageToolsViewModel.onIntent(
+                                                ManageSkillsIntent.ToggleSkill(
+                                                    id,
+                                                    enabled
+                                                )
+                                            )
                                         },
                                         onManageSkills = {
                                             onManageSkills()
@@ -347,10 +359,14 @@ fun ChatScreen(
                 when (currentActionSheet) {
                     ChatActionSheetType.Root -> {
                         GleeActionMenuSheet(
-                            isAgentic = uiState.modelConfig.isAgentic,
+                            isAgentic = settingsState.modelConfig.isAgentic,
                             onToggleAgentic = {
-                                viewModel.onIntent(ChatIntent.UpdateModelConfig(uiState.modelConfig.copy(isAgentic = it)))
-                                viewModel.onIntent(ChatIntent.SaveIntelligenceConfig)
+                                settingsViewModel.onIntent(
+                                    SettingsIntent.UpdateModelConfig(
+                                        settingsState.modelConfig.copy(isAgentic = it)
+                                    )
+                                )
+                                settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
                             },
                             onSelectAction = { currentActionSheet = it }
                         )
@@ -358,19 +374,25 @@ fun ChatScreen(
 
                     ChatActionSheetType.Intelligence -> {
                         GleeIntelligenceSheet(
-                            config = uiState.modelConfig,
-                            systemPrompt = uiState.systemPrompt,
-                            onConfigChange = { viewModel.onIntent(ChatIntent.UpdateModelConfig(it)) },
-                            onUpdateSystemPrompt = {
-                                viewModel.onIntent(
-                                    ChatIntent.UpdateSystemPrompt(
+                            config = settingsState.modelConfig,
+                            systemPrompt = settingsState.systemPrompt,
+                            onConfigChange = {
+                                settingsViewModel.onIntent(
+                                    SettingsIntent.UpdateModelConfig(
                                         it
                                     )
                                 )
                             },
-                            onRestoreDefaultPrompt = { viewModel.onIntent(ChatIntent.RestoreDefaultSystemPrompt) },
+                            onUpdateSystemPrompt = {
+                                settingsViewModel.onIntent(
+                                    SettingsIntent.UpdateSystemPrompt(
+                                        it
+                                    )
+                                )
+                            },
+                            onRestoreDefaultPrompt = { settingsViewModel.onIntent(SettingsIntent.RestoreDefaultSystemPrompt) },
                             onSave = {
-                                viewModel.onIntent(ChatIntent.SaveIntelligenceConfig)
+                                settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
                                 showActionSheet = false
                             },
                             onBack = { currentActionSheet = ChatActionSheetType.Root }
@@ -385,10 +407,15 @@ fun ChatScreen(
                     }
 
                     ChatActionSheetType.Skills -> {
-                        GleeSkillsSheet(
-                            activeSkills = uiState.activeSkills,
+                        GleeToolsSheet(
+                            activeSkills = manageSkillsState.activeSkills,
                             onToggleSkill = { id, enabled ->
-                                viewModel.onIntent(ChatIntent.ToggleSkill(id, enabled))
+                                manageToolsViewModel.onIntent(
+                                    ManageSkillsIntent.ToggleSkill(
+                                        id,
+                                        enabled
+                                    )
+                                )
                             },
                             onManageSkills = {
                                 onManageSkills()
@@ -409,11 +436,11 @@ fun ChatScreen(
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
             ModelSelectionContent(
-                availableModels = uiState.availableModels,
+                availableModels = modelManagementState.availableModels,
                 selectedModel = uiState.selectedModel,
                 onModelSelected = { model ->
                     if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
-                        viewModel.onIntent(ChatIntent.SelectModel(model))
+                        modelManagementViewModel.onIntent(ModelManagementIntent.SelectModel(model))
                     } else {
                         onModelManagement()
                     }
@@ -426,27 +453,6 @@ fun ChatScreen(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)
             )
         }
-    }
-
-    uiState.modelToDelete?.let { model ->
-        AlertDialog(
-            onDismissRequest = { viewModel.onIntent(ChatIntent.CancelDeleteModel) },
-            title = { Text(stringResource(Res.string.delete_model_title, model.name)) },
-            text = { Text(stringResource(Res.string.delete_model_desc)) },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.onIntent(ChatIntent.ConfirmDeleteModel) },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(stringResource(Res.string.delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelDeleteModel) }) {
-                    Text(stringResource(Res.string.cancel))
-                }
-            }
-        )
     }
 
     uiState.conversationToDelete?.let {
@@ -465,27 +471,6 @@ fun ChatScreen(
             dismissButton = {
                 TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelDeleteConversation) }) {
                     Text(stringResource(Res.string.cancel))
-                }
-            }
-        )
-    }
-
-    if (uiState.showCancelDownloadDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onIntent(ChatIntent.DismissCancelDownload) },
-            title = { Text(stringResource(Res.string.cancel_download_title)) },
-            text = { Text(stringResource(Res.string.cancel_download_desc)) },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.onIntent(ChatIntent.ConfirmCancelDownload) },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(stringResource(Res.string.cancel_download_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onIntent(ChatIntent.DismissCancelDownload) }) {
-                    Text(stringResource(Res.string.cancel_download_dismiss))
                 }
             }
         )
@@ -548,7 +533,7 @@ fun ChatContent(
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val copiedMessage = stringResource(Res.string.copied_to_clipboard)
 
@@ -556,7 +541,7 @@ fun ChatContent(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             ChatTopBar(
                 showMenuIcon = !isWide && anyModelDownloaded,
@@ -579,7 +564,7 @@ fun ChatContent(
                     SuggestionChips(
                         suggestions = suggestions,
                         onSuggestionClick = { onIntent(ChatIntent.SelectSuggestion(it)) },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(vertical = 8.dp)
                             .align(Alignment.CenterHorizontally)
                     )
                 }

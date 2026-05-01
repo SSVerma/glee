@@ -5,45 +5,45 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF1C1C1C), // soft matte black
+    primary = Color(0xFF020617),
     onPrimary = Color(0xFFFFFFFF),
 
-    secondary = Color(0xFF8A817C), // muted warm gray (hint of brown)
+    secondary = Color(0xFF475569),
     onSecondary = Color(0xFFFFFFFF),
 
-    tertiary = Color(0xFFC2410C), // deep burnt orange (very controlled)
-    onTertiary = Color(0xFFFFFFFF),
+    tertiary = Color(0xFFD9FF00),
+    onTertiary = Color(0xFF000000),
 
-    background = Color(0xFFF8F7F5), // warm snow (not blue-white)
+    background = Color(0xFFF8FAFC),
     surface = Color(0xFFFFFFFF),
-    onBackground = Color(0xFF111111),
-    onSurface = Color(0xFF111111),
+    onBackground = Color(0xFF020617),
+    onSurface = Color(0xFF020617),
 
-    primaryContainer = Color(0xFFEAEAEA),
-    onPrimaryContainer = Color(0xFF1C1C1C),
+    primaryContainer = Color(0xFF1E293B),
+    onPrimaryContainer = Color(0xFFF8FAFC),
 
-    outline = Color(0xFFE2E2E0),
-    outlineVariant = Color(0xFFEDECE9)
+    outline = Color(0xFFE2E8F0),
+    outlineVariant = Color(0xFFCBD5E1)
 )
 
 val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFE8E6E3), // soft white (not pure)
-    onPrimary = Color(0xFF111111),
+    primary = Color(0xFFF8FAFC),
+    onPrimary = Color(0xFF020617),
 
-    secondary = Color(0xFFA8A29E), // desaturated warm gray
-    onSecondary = Color(0xFF111111),
+    secondary = Color(0xFF94A3B8),
+    onSecondary = Color(0xFF020617),
 
-    tertiary = Color(0xFFEA580C), // slightly lifted burnt orange
-    onTertiary = Color(0xFF2A1400),
+    tertiary = Color(0xFFE2FF33),
+    onTertiary = Color(0xFF000000),
 
-    background = Color(0xFF0F0F0F), // matte black
-    surface = Color(0xFF171717),
-    onBackground = Color(0xFFE8E6E3),
-    onSurface = Color(0xFFE8E6E3),
+    background = Color(0xFF020617),
+    surface = Color(0xFF0F172A),
+    onBackground = Color(0xFFF1F5F9),
+    onSurface = Color(0xFFF1F5F9),
 
-    primaryContainer = Color(0xFF222222),
-    onPrimaryContainer = Color(0xFFE8E6E3),
+    primaryContainer = Color(0xFF1E293B),
+    onPrimaryContainer = Color(0xFFF8FAFC),
 
-    outline = Color(0xFF2F2F2F),
-    outlineVariant = Color(0xFF1F1F1F)
+    outline = Color(0xFF1E293B),
+    outlineVariant = Color(0xFF0F172A)
 )

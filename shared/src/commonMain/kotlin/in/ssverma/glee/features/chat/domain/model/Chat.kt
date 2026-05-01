@@ -44,13 +44,13 @@ enum class ChatRole {
 /**
  * Result of a skill execution.
  */
-sealed interface SkillResult {
+sealed interface ToolResult {
     @Immutable
-    data class Success(val message: String) : SkillResult
+    data class Success(val message: String) : ToolResult
     @Immutable
-    data class Error(val message: String, val throwable: Throwable? = null) : SkillResult
+    data class Error(val message: String, val throwable: Throwable? = null) : ToolResult
     @Immutable
-    data class Progress(val message: String) : SkillResult
+    data class Progress(val message: String) : ToolResult
 }
 
 /**

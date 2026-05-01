@@ -1,6 +1,5 @@
 package `in`.ssverma.glee.core.ui.theme
 
-import `in`.ssverma.glee.features.chat.domain.model.ThemeMode
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -11,7 +10,7 @@ import androidx.compose.runtime.Composable
 @Composable
 fun GleeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true, // For Android wallpaper-based colors
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

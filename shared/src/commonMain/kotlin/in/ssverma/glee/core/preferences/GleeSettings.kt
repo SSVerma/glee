@@ -22,6 +22,14 @@ class GleeSettings(private val settings: ObservableSettings) {
         private const val KEY_MODEL_TOP_K = "model_top_k"
         private const val KEY_MODEL_USE_GPU = "model_use_gpu"
         private const val KEY_MODEL_IS_AGENTIC = "model_is_agentic"
+        private const val KEY_SELECTED_MODEL_ID = "selected_model_id"
+    }
+
+    @OptIn(ExperimentalSettingsApi::class)
+    val selectedModelId: Flow<String?> = flowSettings.getStringOrNullFlow(KEY_SELECTED_MODEL_ID)
+
+    fun setSelectedModelId(id: String?) {
+        settings[KEY_SELECTED_MODEL_ID] = id
     }
 
     @OptIn(ExperimentalSettingsApi::class)

@@ -20,7 +20,7 @@ class AgentProcessor(
 
     fun process(
         prompt: String,
-        skills: Map<String, AiSkill>,
+        skills: Map<String, AiTool>,
         systemPrompt: String,
         files: List<`in`.ssverma.glee.features.chat.domain.model.AttachedFile> = emptyList()
     ): Flow<AgenticEvent> = flow {
@@ -126,13 +126,13 @@ class AgentProcessor(
                     var resultText = ""
                     skill.execute(currentToolCall.input).collect { result ->
                         when (result) {
-                            is SkillResult.Success -> {
+                            is ToolResult.Success -> {
                                 resultText = result.message
                             }
-                            is SkillResult.Error -> {
+                            is ToolResult.Error -> {
                                 resultText = "Error: ${result.message}"
                             }
-                            is SkillResult.Progress -> {
+                            is ToolResult.Progress -> {
                                 emit(AgenticEvent.ToolProgress(result.message))
                             }
                         }
@@ -163,7 +163,7 @@ class AgentProcessor(
         return false
     }
 
-    private fun buildAgenticSystemPrompt(basePrompt: String, skills: List<AiSkill>): String {
+    private fun buildAgenticSystemPrompt(basePrompt: String, skills: List<AiTool>): String {
         if (skills.isEmpty()) return basePrompt
 
         val toolDefinitions = skills.joinToString("\n") { skill ->

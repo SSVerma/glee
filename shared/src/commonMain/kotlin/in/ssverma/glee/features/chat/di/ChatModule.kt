@@ -1,49 +1,64 @@
 package `in`.ssverma.glee.features.chat.di
 
-import `in`.ssverma.glee.core.preferences.GleeSettings
 import `in`.ssverma.glee.domain.AiEngine
 import `in`.ssverma.glee.domain.LiteRtEngine
-import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
-import `in`.ssverma.glee.features.chat.domain.model.AiSkill
-import `in`.ssverma.glee.features.chat.domain.usecase.AiChatManager
+import `in`.ssverma.glee.features.chat.data.repository.AiModelRepository
+import `in`.ssverma.glee.features.chat.domain.ChatSuggestionProvider
 import `in`.ssverma.glee.features.chat.domain.usecase.AgentProcessor
-import `in`.ssverma.glee.features.chat.domain.usecase.GleeSkills
+import `in`.ssverma.glee.features.chat.domain.usecase.AiChatManager
+import `in`.ssverma.glee.features.chat.domain.usecase.GleeTools
 import `in`.ssverma.glee.features.chat.ui.ChatViewModel
-import io.ktor.client.HttpClient
-import okio.FileSystem
-import okio.Path
+import `in`.ssverma.glee.features.models.ModelManagementViewModel
+import `in`.ssverma.glee.features.settings.SettingsViewModel
+import `in`.ssverma.glee.features.skills.ManageToolsViewModel
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import `in`.ssverma.glee.core.common.platform.GleeFileSystem
-
-import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
-import `in`.ssverma.glee.features.chat.data.repository.AiModelRepository
-import `in`.ssverma.glee.features.chat.domain.ChatSuggestionProvider
 
 val chatModule = module {
-
 
     single<AiEngine> { LiteRtEngine() }
     singleOf(::AgentProcessor)
     singleOf(::AiChatManager)
 
-    single { GleeSkills.getDefaultSkills(urlLauncher = get(), json = get()) }
+    single { GleeTools.getDefaultSkills(urlLauncher = get(), json = get()) }
     single { AiModelRepository(fileSystem = get(), appDataDir = get(named("appDataDir"))) }
     singleOf(::ChatSuggestionProvider)
 
     single {
         ChatViewModel(
-            chatManager = get<AiChatManager>(),
-            skills = get<List<AiSkill>>(),
-            modelDownloader = get<ModelDownloader>(),
-            engine = get<AiEngine>(),
-            settings = get<GleeSettings>(),
-            fileSystem = get<GleeFileSystem>(),
-            appDataDir = get<Path>(named("appDataDir")),
-            speechRecognizerManager = get<SpeechRecognizerManager>(),
-            modelRepository = get<AiModelRepository>(),
-            suggestionProvider = get<ChatSuggestionProvider>()
+            chatManager = get(),
+            skills = get(),
+            engine = get(),
+            settings = get(),
+            appDataDir = get(named("appDataDir")),
+            speechRecognizerManager = get(),
+            modelRepository = get(),
+            suggestionProvider = get()
+        )
+    }
+
+    single {
+        SettingsViewModel(
+            settings = get(),
+            chatManager = get()
+        )
+    }
+
+    single {
+        ModelManagementViewModel(
+            settings = get(),
+            modelRepository = get(),
+            modelDownloader = get(),
+            fileSystem = get(),
+            appDataDir = get(named("appDataDir"))
+        )
+    }
+
+    single {
+        ManageToolsViewModel(
+            chatManager = get(),
+            skills = get()
         )
     }
 }

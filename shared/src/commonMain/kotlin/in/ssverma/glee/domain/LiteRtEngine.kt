@@ -1,6 +1,6 @@
 package `in`.ssverma.glee.domain
 
-import `in`.ssverma.glee.features.chat.domain.model.AiSkill
+import `in`.ssverma.glee.features.chat.domain.model.AiTool
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +15,7 @@ expect class LiteRtEngine() : AiEngine {
 
     override fun setSystemPrompt(prompt: String)
 
-    override fun setSkills(skills: List<AiSkill>)
+    override fun setSkills(skills: List<AiTool>)
 
     override suspend fun clearConversation()
 

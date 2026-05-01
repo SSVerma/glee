@@ -21,6 +21,9 @@ import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okio.Path
@@ -30,6 +33,9 @@ class AiModelRepository(
     private val fileSystem: GleeFileSystem,
     private val appDataDir: Path
 ) {
+    private val _modelsChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val modelsChanged: SharedFlow<Unit> = _modelsChanged.asSharedFlow()
+
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -55,6 +61,7 @@ class AiModelRepository(
         try {
             val content = json.encodeToString(customModelsList)
             fileSystem.writeFile(customModelsFile, content)
+            _modelsChanged.tryEmit(Unit)
         } catch (e: Exception) {
             println("[Glee] Failed to save custom models: ${e.message}")
         }

@@ -1,9 +1,14 @@
 package `in`.ssverma.glee.features.chat.domain.usecase
 
 import `in`.ssverma.glee.core.common.currentTimeMillis
-import `in`.ssverma.glee.domain.AiEngine
 import `in`.ssverma.glee.domain.AiChunk
-import `in`.ssverma.glee.features.chat.domain.model.*
+import `in`.ssverma.glee.domain.AiEngine
+import `in`.ssverma.glee.features.chat.domain.model.AiTool
+import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
+import `in`.ssverma.glee.features.chat.domain.model.ChatMessage
+import `in`.ssverma.glee.features.chat.domain.model.ChatRole
+import `in`.ssverma.glee.features.chat.domain.model.Conversation
+import `in`.ssverma.glee.features.chat.domain.model.MessageAttachment
 import `in`.ssverma.glee.features.chat.domain.repository.ChatRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +32,7 @@ class AiChatManager(
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
     val conversations: StateFlow<List<Conversation>> = _conversations.asStateFlow()
 
-    private val skills = mutableMapOf<String, AiSkill>()
+    private val skills = mutableMapOf<String, AiTool>()
     private var systemPrompt: String = ""
 
     suspend fun loadConversations() {
@@ -40,18 +45,13 @@ class AiChatManager(
         currentConversation = conversation
         val messages = repository.getMessages(conversation.id)
         _messages.update { messages }
-        
-        // Restore history to the engine's internal conversation buffer
+
+        // Restore system prompt
         engine.setSystemPrompt(systemPrompt)
-        messages.forEach { msg ->
-            if (msg.role == ChatRole.User) {
-                // We use a dummy collect because sendMessageAsync triggers generation.
-                // LiteRT LM doesn't have a direct "addToHistory" without generation,
-                // so we rely on the system to prefill it.
-                // NOTE: This is a heavy operation for long histories.
-                engine.generateResponse(msg.content).collect { }
-            }
-        }
+
+        // Note: LiteRT LM doesn't support direct history restoration without re-running generation.
+        // We set the messages in the UI state, but the next message will be fresh unless we re-run history.
+        // For now, we avoid re-running to prevent slow/stuck UI.
     }
 
     suspend fun deleteConversation(conversationId: String) {
@@ -62,7 +62,7 @@ class AiChatManager(
         }
     }
 
-    fun registerSkill(skill: AiSkill) {
+    fun registerSkill(skill: AiTool) {
         skills[skill.id] = skill
         engine.setSkills(skills.values.toList())
     }
@@ -76,10 +76,10 @@ class AiChatManager(
     }
 
     fun sendMessage(
-        uiPrompt: String, 
+        uiPrompt: String,
         enginePrompt: String,
-        modelId: String, 
-        isPrivate: Boolean, 
+        modelId: String,
+        isPrivate: Boolean,
         isAgentic: Boolean,
         files: List<AttachedFile> = emptyList(),
         historyFiles: List<AttachedFile> = emptyList()
@@ -116,6 +116,7 @@ class AiChatManager(
                     is AgenticEvent.ResponseChunk -> {
                         emit(event.chunk)
                     }
+
                     is AgenticEvent.Thought -> {
                         val assistantThought = ChatMessage(
                             id = randomId(),
@@ -123,11 +124,16 @@ class AiChatManager(
                             content = "💭 **Thinking...**\n\n${event.text}"
                         )
                         _messages.update { it + assistantThought }
-                        if (conversationId != null) repository.saveMessage(conversationId, assistantThought)
+                        if (conversationId != null) repository.saveMessage(
+                            conversationId,
+                            assistantThought
+                        )
                     }
+
                     is AgenticEvent.ToolCallDetected -> {
                         emit(AiChunk(text = "", toolCall = event.toolCall, isFinal = false))
                     }
+
                     is AgenticEvent.ToolExecutionStarted -> {
                         val toolRequestMsg = ChatMessage(
                             id = "tool_${event.skillId}",
@@ -135,11 +141,16 @@ class AiChatManager(
                             content = "Executing: ${event.skillId}"
                         )
                         _messages.update { it + toolRequestMsg }
-                        if (conversationId != null) repository.saveMessage(conversationId, toolRequestMsg)
+                        if (conversationId != null) repository.saveMessage(
+                            conversationId,
+                            toolRequestMsg
+                        )
                     }
+
                     is AgenticEvent.ToolProgress -> {
                         // Optionally handle progress
                     }
+
                     is AgenticEvent.ToolResultReceived -> {
                         _messages.update { list ->
                             list.map { msg ->
@@ -152,6 +163,7 @@ class AiChatManager(
                         }
                         // Update in repository if needed, but for now we skip to keep history clean.
                     }
+
                     is AgenticEvent.Error -> {
                         emit(AiChunk(text = "Error: ${event.message}", isFinal = false))
                     }
@@ -168,12 +180,16 @@ class AiChatManager(
         }
     }
 
-    private fun randomId() = (currentTimeMillis() + (0..1000).random()).toString()
+    private fun randomId() = "${currentTimeMillis()}-${(0..9999).random()}"
 
     /**
      * Commits a completed assistant message to history.
      */
-    suspend fun commitAssistantMessage(content: String, isPrivate: Boolean) {
+    suspend fun commitAssistantMessage(
+        content: String,
+        isPrivate: Boolean,
+        conversationId: String? = null
+    ) {
         val assistantMessage = ChatMessage(
             id = randomId(),
             role = ChatRole.Assistant,
@@ -181,9 +197,10 @@ class AiChatManager(
         )
         _messages.update { it + assistantMessage }
 
-        if (!isPrivate && currentConversation != null) {
+        val targetConversationId = conversationId ?: currentConversation?.id
+        if (!isPrivate && targetConversationId != null) {
             repository.saveMessage(
-                conversationId = currentConversation?.id.orEmpty(),
+                conversationId = targetConversationId,
                 message = assistantMessage
             )
         }

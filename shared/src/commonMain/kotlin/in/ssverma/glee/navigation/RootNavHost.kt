@@ -1,7 +1,6 @@
 package `in`.ssverma.glee.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -24,7 +23,7 @@ private val GleeNavConfig = SavedStateConfiguration {
             subclass(Splash::class)
             subclass(ModelManagement::class)
             subclass(Chat::class)
-            subclass(ManageSkills::class)
+            subclass(ManageTools::class)
             subclass(Settings::class)
         }
     }
@@ -62,18 +61,18 @@ fun RootNavHost(
                 ChatScreen(
                     viewModel = viewModel,
                     onModelManagement = { backStack.add(ModelManagement) },
-                    onManageSkills = { backStack.add(ManageSkills) },
+                    onManageSkills = { backStack.add(ManageTools) },
                     onSettings = { backStack.add(Settings) }
                 )
             }
-            ManageSkills -> NavEntry(key) {
+            ManageTools -> NavEntry(key) {
                 ManageSkillsScreen(onBack = { backStack.removeAt(backStack.size - 1) })
             }
             Settings -> NavEntry(key) {
                 SettingsScreen(
                     onBack = { backStack.removeAt(backStack.size - 1) },
                     onModelManagement = { backStack.add(ModelManagement) },
-                    onManageSkills = { backStack.add(ManageSkills) }
+                    onManageSkills = { backStack.add(ManageTools) }
                 )
             }
             else -> NavEntry(key) { }

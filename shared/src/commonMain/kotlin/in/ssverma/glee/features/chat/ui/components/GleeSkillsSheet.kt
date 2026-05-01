@@ -10,13 +10,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,21 +27,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import glee.shared.generated.resources.Res
-import glee.shared.generated.resources.active_skills
-import glee.shared.generated.resources.skills
-import org.jetbrains.compose.resources.stringResource
-
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
-import glee.shared.generated.resources.manage_skills
-import glee.shared.generated.resources.manage_skills_desc
+import glee.shared.generated.resources.active_tools
+import glee.shared.generated.resources.manage_tools
+import glee.shared.generated.resources.manage_tools_desc
+import glee.shared.generated.resources.tools
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun GleeSkillsSheet(
+fun GleeToolsSheet(
     activeSkills: Map<String, Boolean>,
     onToggleSkill: (String, Boolean) -> Unit,
     onManageSkills: () -> Unit,
@@ -66,7 +63,7 @@ fun GleeSkillsSheet(
             }
             Spacer(Modifier.width(16.dp))
             Text(
-                text = stringResource(Res.string.skills),
+                text = stringResource(Res.string.tools),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -74,7 +71,7 @@ fun GleeSkillsSheet(
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
-                text = stringResource(Res.string.active_skills).uppercase(),
+                text = stringResource(Res.string.active_tools).uppercase(),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary,
@@ -96,12 +93,12 @@ fun GleeSkillsSheet(
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
-                text = "Skill Settings",
+                text = "Tools Settings",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = stringResource(Res.string.manage_skills_desc),
+                text = stringResource(Res.string.manage_tools_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -110,7 +107,7 @@ fun GleeSkillsSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text(stringResource(Res.string.manage_skills), fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.manage_tools), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -125,13 +122,11 @@ private fun SkillToggleItem(
     Surface(
         onClick = { onToggle(!isEnabled) },
         shape = RoundedCornerShape(24.dp),
-        color = if (isEnabled) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        },
         border = if (isEnabled) {
-            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+            androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            )
         } else null
     ) {
         Row(
@@ -145,15 +140,10 @@ private fun SkillToggleItem(
                 text = name,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (isEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
             )
             Switch(
                 checked = isEnabled,
                 onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                )
             )
         }
     }

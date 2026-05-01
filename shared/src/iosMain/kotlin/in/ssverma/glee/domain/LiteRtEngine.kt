@@ -1,6 +1,6 @@
 package `in`.ssverma.glee.domain
 
-import `in`.ssverma.glee.features.chat.domain.model.AiSkill
+import `in`.ssverma.glee.features.chat.domain.model.AiTool
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +24,7 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         // Implementation
     }
 
-    actual override fun setSkills(skills: List<AiSkill>) {
+    actual override fun setSkills(skills: List<AiTool>) {
         // bridge logic
     }
 

@@ -82,7 +82,10 @@ private fun NoModelBanner(onDownloadClick: () -> Unit) {
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        )
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
@@ -125,7 +128,6 @@ private fun NoModelBanner(onDownloadClick: () -> Unit) {
 private fun StandardWelcomeHeader() {
     val primaryGradient = Brush.linearGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary,
             MaterialTheme.colorScheme.secondary,
             MaterialTheme.colorScheme.tertiary
         )

@@ -14,10 +14,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,7 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.app_name
-import glee.shared.generated.resources.manage_skills
+import glee.shared.generated.resources.manage_tools
 import glee.shared.generated.resources.model_management
 import glee.shared.generated.resources.models
 import glee.shared.generated.resources.new_chat
@@ -55,11 +55,7 @@ fun GleeSidebar(
     onSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.fillMaxHeight(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp
-    ) {
+    Surface(modifier = modifier.fillMaxHeight()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -122,7 +118,7 @@ fun GleeSidebar(
 
             SidebarActionItem(
                 icon = Icons.Default.Construction,
-                label = stringResource(Res.string.manage_skills),
+                label = stringResource(Res.string.manage_tools),
                 onClick = onManageSkills
             )
 
@@ -157,7 +153,9 @@ private fun ConversationItem(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Chat,
                 contentDescription = null,
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(
+                    alpha = 0.6f
+                ),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(12.dp))

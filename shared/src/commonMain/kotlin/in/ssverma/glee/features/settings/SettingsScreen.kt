@@ -44,8 +44,8 @@ import glee.shared.generated.resources.adaptive_colors
 import glee.shared.generated.resources.appearance
 import glee.shared.generated.resources.dark
 import glee.shared.generated.resources.light
-import glee.shared.generated.resources.manage_skills
-import glee.shared.generated.resources.manage_skills_desc
+import glee.shared.generated.resources.manage_tools
+import glee.shared.generated.resources.manage_tools_desc
 import glee.shared.generated.resources.model_and_intelligence
 import glee.shared.generated.resources.model_management
 import glee.shared.generated.resources.model_management_desc
@@ -57,8 +57,6 @@ import glee.shared.generated.resources.version_desc
 import `in`.ssverma.glee.core.common.platform.PlatformType
 import `in`.ssverma.glee.core.common.platform.getPlatformType
 import `in`.ssverma.glee.features.chat.domain.model.ThemeMode
-import `in`.ssverma.glee.features.chat.ui.ChatIntent
-import `in`.ssverma.glee.features.chat.ui.ChatViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -68,7 +66,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onModelManagement: () -> Unit,
     onManageSkills: () -> Unit,
-    viewModel: ChatViewModel = koinViewModel(),
+    viewModel: SettingsViewModel = koinViewModel(),
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -110,7 +108,7 @@ fun SettingsScreen(
                         title = stringResource(Res.string.adaptive_colors),
                         subtitle = "Sync Glee colors with your system wallpaper.",
                         isEnabled = uiState.isAdaptiveColorsEnabled,
-                        onToggle = { viewModel.onIntent(ChatIntent.SetAdaptiveColors(it)) }
+                        onToggle = { viewModel.onIntent(SettingsIntent.SetAdaptiveColors(it)) }
                     )
                 }
             }
@@ -125,8 +123,8 @@ fun SettingsScreen(
                     onClick = onModelManagement
                 )
                 SettingsClickItem(
-                    title = stringResource(Res.string.manage_skills),
-                    subtitle = stringResource(Res.string.manage_skills_desc),
+                    title = stringResource(Res.string.manage_tools),
+                    subtitle = stringResource(Res.string.manage_tools_desc),
                     icon = Icons.Default.Extension,
                     onClick = onManageSkills
                 )
@@ -158,7 +156,7 @@ fun SettingsScreen(
             ThemeSelectionBottomSheet(
                 currentMode = uiState.themeMode,
                 onModeSelected = {
-                    viewModel.onIntent(ChatIntent.SetThemeMode(it))
+                    viewModel.onIntent(SettingsIntent.SetThemeMode(it))
                     showThemeSheet = false
                 },
                 onDismiss = { showThemeSheet = false }

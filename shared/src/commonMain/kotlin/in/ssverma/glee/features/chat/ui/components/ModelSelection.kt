@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,8 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import glee.shared.generated.resources.Res
-import androidx.compose.material3.TextButton
+import glee.shared.generated.resources.imported
 import glee.shared.generated.resources.manage_models
 import glee.shared.generated.resources.select_model
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
@@ -51,7 +54,7 @@ fun ModelSelectionContent(
                 text = stringResource(Res.string.select_model),
                 style = MaterialTheme.typography.titleLarge
             )
-            TextButton(onClick = onManageModelsClick) {
+            OutlinedButton(onClick = onManageModelsClick) {
                 Text(text = stringResource(Res.string.manage_models))
             }
         }
@@ -78,12 +81,11 @@ fun ModelSelectionItem(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(
-            alpha = 0.5f
-        ),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border = if (isSelected) BorderStroke(
-            2.dp,
-            MaterialTheme.colorScheme.primary
+            width = 2.dp,
+            color = MaterialTheme.colorScheme.primary
         ) else null,
         modifier = modifier
     ) {
@@ -92,24 +94,42 @@ fun ModelSelectionItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = model.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = model.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (model.isCustom) {
+                        Spacer(Modifier.width(8.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.imported),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                fontSize = 8.sp
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = model.resourceUsage,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             when (val status = model.downloadStatus) {
                 ModelDownloadStatus.Downloaded -> {
-                    if (isSelected) Icon(
-                        Icons.Default.CheckCircle,
-                        null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
 
                 is ModelDownloadStatus.Downloading -> {
@@ -121,9 +141,8 @@ fun ModelSelectionItem(
 
                 else -> {
                     Icon(
-                        Icons.Default.DownloadForOffline,
-                        null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        imageVector = Icons.Default.DownloadForOffline,
+                        contentDescription = null,
                     )
                 }
             }

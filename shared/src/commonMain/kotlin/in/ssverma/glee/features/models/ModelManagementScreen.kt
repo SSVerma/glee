@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
@@ -71,6 +72,7 @@ import glee.shared.generated.resources.downloading_progress
 import glee.shared.generated.resources.hardware_requirements
 import glee.shared.generated.resources.import_failed
 import glee.shared.generated.resources.import_model
+import glee.shared.generated.resources.imported
 import glee.shared.generated.resources.importing_model
 import glee.shared.generated.resources.importing_model_desc
 import glee.shared.generated.resources.learn_more_license
@@ -82,8 +84,6 @@ import glee.shared.generated.resources.retry
 import glee.shared.generated.resources.try_it
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
-import `in`.ssverma.glee.features.chat.ui.ChatIntent
-import `in`.ssverma.glee.features.chat.ui.ChatViewModel
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -93,7 +93,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ModelManagementScreen(
     onClose: () -> Unit,
-    viewModel: ChatViewModel = koinViewModel(),
+    viewModel: ModelManagementViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -104,7 +104,7 @@ fun ModelManagementScreen(
         type = PickerType.File(extensions = listOf("task", "bin", "litertlm", "tflite")),
         mode = PickerMode.Single
     ) { file ->
-        file?.let { viewModel.onIntent(ChatIntent.ImportModelFile(it)) }
+        file?.let { viewModel.onIntent(ModelManagementIntent.ImportModelFile(it)) }
     }
 
     Scaffold(
@@ -119,7 +119,10 @@ fun ModelManagementScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { launcher.launch() }) {
+                    OutlinedButton(
+                        onClick = { launcher.launch() },
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
                         Icon(Icons.Default.Add, null)
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(resource = Res.string.import_model))
@@ -161,17 +164,34 @@ fun ModelManagementScreen(
                         chunk.forEach { model ->
                             ModelManagementItem(
                                 model = model,
-                                onDownload = { viewModel.onIntent(ChatIntent.DownloadModel(model)) },
-                                onCancel = { viewModel.onIntent(ChatIntent.CancelDownload(model.id)) },
-                                onDelete = { viewModel.onIntent(ChatIntent.DeleteModel(model)) },
+                                onDownload = {
+                                    viewModel.onIntent(
+                                        ModelManagementIntent.DownloadModel(
+                                            model
+                                        )
+                                    )
+                                },
+                                onCancel = {
+                                    viewModel.onIntent(
+                                        ModelManagementIntent.CancelDownload(
+                                            model.id
+                                        )
+                                    )
+                                },
+                                onDelete = {
+                                    viewModel.onIntent(
+                                        ModelManagementIntent.DeleteModel(
+                                            model
+                                        )
+                                    )
+                                },
                                 onSelect = {
-                                    viewModel.onIntent(ChatIntent.SelectModel(model))
+                                    viewModel.onIntent(ModelManagementIntent.SelectModel(model))
                                     onClose()
                                 },
                                 modifier = Modifier.weight(1f).fillMaxHeight()
                             )
                         }
-                        // Fill empty space if odd number of items in wide mode
                         if (isWide && chunk.size == 1) {
                             Spacer(Modifier.weight(1f))
                         }
@@ -183,12 +203,12 @@ fun ModelManagementScreen(
 
     uiState.modelToDelete?.let { model ->
         AlertDialog(
-            onDismissRequest = { viewModel.onIntent(ChatIntent.CancelDeleteModel) },
+            onDismissRequest = { viewModel.onIntent(ModelManagementIntent.CancelDeleteModel) },
             title = { Text(stringResource(resource = Res.string.delete_model_title, model.name)) },
             text = { Text(stringResource(resource = Res.string.delete_model_desc)) },
             confirmButton = {
                 Button(
-                    onClick = { viewModel.onIntent(ChatIntent.ConfirmDeleteModel) },
+                    onClick = { viewModel.onIntent(ModelManagementIntent.ConfirmDeleteModel) },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text(
@@ -198,7 +218,7 @@ fun ModelManagementScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelDeleteModel) }) {
+                TextButton(onClick = { viewModel.onIntent(ModelManagementIntent.CancelDeleteModel) }) {
                     Text(stringResource(Res.string.cancel))
                 }
             }
@@ -207,19 +227,19 @@ fun ModelManagementScreen(
 
     if (uiState.showCancelDownloadDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.onIntent(ChatIntent.DismissCancelDownload) },
+            onDismissRequest = { viewModel.onIntent(ModelManagementIntent.DismissCancelDownload) },
             title = { Text(stringResource(resource = Res.string.cancel_download_title)) },
             text = { Text(stringResource(resource = Res.string.cancel_download_desc)) },
             confirmButton = {
                 Button(
-                    onClick = { viewModel.onIntent(ChatIntent.ConfirmCancelDownload) },
+                    onClick = { viewModel.onIntent(ModelManagementIntent.ConfirmCancelDownload) },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text(stringResource(resource = Res.string.cancel_download_confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onIntent(ChatIntent.DismissCancelDownload) }) {
+                TextButton(onClick = { viewModel.onIntent(ModelManagementIntent.DismissCancelDownload) }) {
                     Text(stringResource(resource = Res.string.cancel_download_dismiss))
                 }
             }
@@ -231,7 +251,7 @@ fun ModelManagementScreen(
             onDismissRequest = { },
             confirmButton = { },
             dismissButton = {
-                TextButton(onClick = { viewModel.onIntent(ChatIntent.CancelImport) }) {
+                TextButton(onClick = { viewModel.onIntent(ModelManagementIntent.CancelImport) }) {
                     Text(stringResource(resource = Res.string.cancel_import))
                 }
             },
@@ -242,7 +262,7 @@ fun ModelManagementScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     LinearProgressIndicator(
-                        progress = uiState.importProgress,
+                        progress = { uiState.importProgress },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(16.dp))
@@ -259,9 +279,9 @@ fun ModelManagementScreen(
 
     uiState.importError?.let { error ->
         AlertDialog(
-            onDismissRequest = { viewModel.onIntent(ChatIntent.ImportModel) /* Reset error */ },
+            onDismissRequest = { viewModel.onIntent(ModelManagementIntent.ResetImportError) },
             confirmButton = {
-                Button(onClick = { viewModel.onIntent(ChatIntent.ImportModel) }) {
+                Button(onClick = { viewModel.onIntent(ModelManagementIntent.ResetImportError) }) {
                     Text(stringResource(resource = Res.string.ok))
                 }
             },
@@ -320,6 +340,24 @@ fun ModelManagementItem(
                                 shape = RoundedCornerShape(8.dp)
                             )
                         }
+                        if (model.isCustom) {
+                            Spacer(Modifier.width(8.dp))
+                            SuggestionChip(
+                                onClick = { },
+                                label = {
+                                    Text(
+                                        stringResource(Res.string.imported),
+                                        fontSize = 10.sp
+                                    )
+                                },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                ),
+                                border = null,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -368,7 +406,6 @@ fun ModelManagementItem(
 
             Spacer(Modifier.height(12.dp))
 
-            // Resource Requirements Section
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(8.dp),

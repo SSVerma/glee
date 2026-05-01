@@ -28,7 +28,11 @@ class KtorModelDownloader(
     /**
      * Downloads a model file using streaming to avoid memory issues with large files.
      */
-    override fun downloadModel(url: String, targetPath: Path, token: String?): Flow<DownloadStatus> = channelFlow {
+    override fun downloadModel(
+        url: String,
+        targetPath: Path,
+        token: String?
+    ): Flow<DownloadStatus> = channelFlow {
         send(DownloadStatus.Progress(0f))
 
         try {
@@ -38,7 +42,7 @@ class KtorModelDownloader(
                 if (!token.isNullOrBlank()) {
                     header(HttpHeaders.Authorization, "Bearer $token")
                 }
-                
+
                 onDownload { bytesSentTotal, contentLength ->
                     if (contentLength != null && contentLength > 0) {
                         trySend(DownloadStatus.Progress(bytesSentTotal.toFloat() / contentLength))

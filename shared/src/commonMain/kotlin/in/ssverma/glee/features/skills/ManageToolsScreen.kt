@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
@@ -35,43 +34,39 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import glee.shared.generated.resources.Res
-import glee.shared.generated.resources.manage_skills
-import glee.shared.generated.resources.skills_header_desc
-import `in`.ssverma.glee.features.chat.domain.model.AiSkill
-import `in`.ssverma.glee.features.chat.ui.ChatViewModel
+import glee.shared.generated.resources.manage_tools
+import glee.shared.generated.resources.tools_desc
+import `in`.ssverma.glee.features.chat.domain.model.AiTool
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ManageSkillsScreen(
     onBack: () -> Unit,
-    viewModel: ChatViewModel = koinViewModel(),
+    viewModel: ManageToolsViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val skills = viewModel.getSkills()
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.manage_skills)) },
+                title = { Text(stringResource(Res.string.manage_tools)) },
                 modifier = Modifier.statusBarsPadding(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* Add skill logic */ }) {
-                        Icon(Icons.Default.Add, null)
-                    }
-                }
             )
         }
     ) { paddingValues ->
@@ -84,14 +79,14 @@ fun ManageSkillsScreen(
         ) {
             item {
                 Text(
-                    text = stringResource(Res.string.skills_header_desc),
+                    text = stringResource(Res.string.tools_desc),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(8.dp))
             }
 
-            items(skills) { skill ->
+            items(uiState.skills) { skill ->
                 SkillDetailItem(skill)
             }
         }
@@ -99,7 +94,7 @@ fun ManageSkillsScreen(
 }
 
 @Composable
-private fun SkillDetailItem(skill: AiSkill) {
+private fun SkillDetailItem(skill: AiTool) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -116,10 +111,9 @@ private fun SkillDetailItem(skill: AiSkill) {
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Default.Code,
-                            null,
+                            imageVector = Icons.Default.Code,
+                            contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -139,7 +133,7 @@ private fun SkillDetailItem(skill: AiSkill) {
             }
 
             Spacer(Modifier.height(16.dp))
-            
+
             Row {
                 Icon(
                     Icons.Default.Info,

@@ -16,7 +16,7 @@ data object ModelManagement : GleeDestination
 data object Chat : GleeDestination
 
 @Serializable
-data object ManageSkills : GleeDestination
+data object ManageTools : GleeDestination
 
 @Serializable
 data object Settings : GleeDestination
