@@ -2,9 +2,18 @@ package `in`.ssverma.glee.core.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Shop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -12,21 +21,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import glee.shared.generated.resources.Res
-import glee.shared.generated.resources.get_glee_app
-import glee.shared.generated.resources.web_performance_warning
-import glee.shared.generated.resources.download_for_desktop
-import glee.shared.generated.resources.get_on_play_store
 import glee.shared.generated.resources.continue_on_web
+import glee.shared.generated.resources.download_for_desktop
+import glee.shared.generated.resources.get_glee_app
+import glee.shared.generated.resources.get_on_play_store
+import glee.shared.generated.resources.web_performance_warning
 import `in`.ssverma.glee.core.common.platform.PlatformType
-import `in`.ssverma.glee.core.common.platform.getPlatformType
 import `in`.ssverma.glee.core.common.platform.UrlLauncher
+import `in`.ssverma.glee.core.common.platform.getPlatformType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 @Composable
 fun WebPerformanceDialog(
     showDialog: Boolean,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
 ) {
     val platform = remember { getPlatformType() }
     if (platform != PlatformType.WasmJs && platform != PlatformType.Js) return
@@ -43,20 +52,34 @@ fun WebPerformanceDialog(
                 }
             },
             confirmButton = {
-                Column(
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
+                    OutlinedButton(
                         onClick = { urlLauncher.launchUrl("https://github.com/ssverma/Glee/releases/latest") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Computer,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.size(8.dp))
                         Text(stringResource(Res.string.download_for_desktop))
                     }
                     Button(
                         onClick = { urlLauncher.launchUrl("https://play.google.com/store/apps/details?id=in.ssverma.glee") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Shop,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.size(8.dp))
                         Text(stringResource(Res.string.get_on_play_store))
                     }
                 }
