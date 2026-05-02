@@ -1,10 +1,6 @@
-tasks.register("deployWeb") {
+tasks.register<Exec>("deployWeb") {
     group = "deployment"
     dependsOn("wasmJsBrowserDistribution")
     
-    doLast {
-        exec {
-            commandLine("firebase", "deploy", "--only", "hosting", "--project", "glee")
-        }
-    }
+    commandLine("firebase", "deploy", "--only", "hosting", "--project", "glee-ai")
 }

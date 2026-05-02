@@ -35,13 +35,13 @@ jobs:
           chmod +x ./gradlew
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
             ./gradlew :shared:packageReleaseDmg
-            mkdir -p staging && cp shared/build/compose/binaries/main/dmg/*.dmg staging/glee.dmg
+            mkdir -p staging && cp shared/build/compose/binaries/main-release/dmg/*.dmg staging/glee.dmg
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
             ./gradlew :shared:packageReleaseMsi
-            mkdir -p staging && cp shared/build/compose/binaries/main/msi/*.msi staging/glee.msi
+            mkdir -p staging && cp shared/build/compose/binaries/main-release/msi/*.msi staging/glee.msi
           else
             ./gradlew :shared:packageReleaseDeb
-            mkdir -p staging && cp shared/build/compose/binaries/main/deb/*.deb staging/glee.deb
+            mkdir -p staging && cp shared/build/compose/binaries/main-release/deb/*.deb staging/glee.deb
           fi
 
       - name: Upload Desktop Artifacts

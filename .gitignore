@@ -10,7 +10,10 @@ build
 local.properties
 glee.properties
 release.properties
+*.jks
+*.keystore
 google-services.json
 *.iml
 .kotlin/
 kotlin-js-store/
+.firebase/
