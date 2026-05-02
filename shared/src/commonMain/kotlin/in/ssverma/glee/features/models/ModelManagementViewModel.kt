@@ -3,6 +3,9 @@ package `in`.ssverma.glee.features.models
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
+import `in`.ssverma.glee.core.common.platform.PermissionManager
+import `in`.ssverma.glee.core.common.platform.PermissionType
+import `in`.ssverma.glee.core.common.platform.UrlLauncher
 import `in`.ssverma.glee.core.preferences.GleeSettings
 import `in`.ssverma.glee.features.chat.data.remote.DownloadStatus
 import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
@@ -12,6 +15,7 @@ import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +29,9 @@ class ModelManagementViewModel(
     private val modelRepository: AiModelRepository,
     private val modelDownloader: ModelDownloader,
     private val fileSystem: GleeFileSystem,
-    private val appDataDir: Path
+    private val appDataDir: Path,
+    private val permissionManager: PermissionManager,
+    private val urlLauncher: UrlLauncher
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ModelManagementState())
@@ -46,7 +52,52 @@ class ModelManagementViewModel(
     private fun initializeModels() {
         viewModelScope.launch {
             val updatedModels = modelRepository.getModelsWithStatus()
-            _uiState.update { it.copy(availableModels = updatedModels) }
+
+            // Merge repository state with active job state
+            val finalModels = updatedModels.map { repoModel ->
+                val activeModel = _uiState.value.availableModels.find { it.id == repoModel.id }
+                if (activeModel?.downloadStatus is ModelDownloadStatus.Downloading && repoModel.downloadStatus is ModelDownloadStatus.NotDownloaded) {
+                    activeModel
+                } else {
+                    repoModel
+                }
+            }
+
+            _uiState.update { it.copy(availableModels = finalModels) }
+
+            // Trigger observation ONLY for models that are actually downloading in background
+            // AND only if we aren't already managing them in this VM session.
+            finalModels.forEach { model ->
+                if (model.downloadStatus is ModelDownloadStatus.NotDownloaded && !downloadJobs.containsKey(model.id)) {
+                    val observation = modelDownloader.observeDownload(model.id)
+                    if (observation != null) {
+                        // Check if observation actually emits anything BEFORE adding to downloadJobs
+                        // To avoid blocking future download clicks with "empty" jobs
+                        startBackgroundObservation(model, observation)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun startBackgroundObservation(model: ModelInfo, flow: Flow<DownloadStatus>) {
+        viewModelScope.launch {
+            flow.collect { status ->
+                if (status is DownloadStatus.Progress) {
+                    // Only "take over" the job if it actually starts emitting progress
+                    if (!downloadJobs.containsKey(model.id)) {
+                        downloadJobs[model.id] = coroutineContext[Job]!!
+                    }
+                    updateModelStatus(model.id, ModelDownloadStatus.Downloading(status.progress))
+                } else if (status is DownloadStatus.Success) {
+                    updateModelStatus(model.id, ModelDownloadStatus.Downloaded)
+                    downloadJobs.remove(model.id)
+                    modelRepository.notifyModelsChanged()
+                } else if (status is DownloadStatus.Error) {
+                    updateModelStatus(model.id, ModelDownloadStatus.Error(status.message))
+                    downloadJobs.remove(model.id)
+                }
+            }
         }
     }
 
@@ -139,63 +190,74 @@ class ModelManagementViewModel(
                 importJob?.cancel()
                 _uiState.update { it.copy(isImporting = false, importProgress = 0f) }
             }
-        }
-    }
 
-    private fun downloadModel(model: ModelInfo) {
-        if (downloadJobs.containsKey(model.id)) return
-        val targetPath = appDataDir.resolve("${model.id}.litertlm")
-        val job = viewModelScope.launch {
-            try {
-                modelDownloader.downloadModel(
-                    url = model.url,
-                    targetPath = targetPath,
-                    token = _uiState.value.hfToken
-                ).collect { status ->
-                    when (status) {
-                        is DownloadStatus.Progress -> updateModelStatus(
-                            model.id,
-                            ModelDownloadStatus.Downloading(status.progress)
-                        )
-
-                        is DownloadStatus.Success -> {
-                            updateModelStatus(model.id, ModelDownloadStatus.Downloaded)
-                            downloadJobs.remove(model.id)
-
-                            val savedSelectedId = settings.selectedModelId.first()
-                            if (savedSelectedId == null) {
-                                settings.setSelectedModelId(model.id)
-                            }
-                        }
-
-                        is DownloadStatus.Error -> {
-                            updateModelStatus(model.id, ModelDownloadStatus.Error(status.message))
-                            downloadJobs.remove(model.id)
-                            viewModelScope.launch(Dispatchers.Default) {
-                                runCatching {
-                                    fileSystem.delete(
-                                        targetPath
-                                    )
-                                }
-                            }
+            is ModelManagementIntent.RequestDownloadModel -> {
+                if (permissionManager.isPermissionGranted(PermissionType.Notifications)) {
+                    downloadModel(intent.model)
+                } else {
+                    val shouldShowRationale = permissionManager.shouldShowRationale(PermissionType.Notifications)
+                    viewModelScope.launch {
+                        val hasRequested = settings.hasRequestedNotifications.first()
+                        _uiState.update { 
+                            it.copy(
+                                modelForNotificationRationale = intent.model,
+                                isPermanentlyDenied = hasRequested && !shouldShowRationale
+                            )
                         }
                     }
                 }
-            } catch (e: Exception) {
-                if (e !is CancellationException) {
-                    updateModelStatus(
+            }
+
+            ModelManagementIntent.DismissNotificationRationale -> {
+                settings.setHasRequestedNotifications(true)
+                _uiState.update { it.copy(modelForNotificationRationale = null) }
+            }
+
+            ModelManagementIntent.OpenAppSettings -> {
+                urlLauncher.openAppSettings()
+                _uiState.update { it.copy(modelForNotificationRationale = null) }
+            }
+        }
+    }
+
+    fun downloadModel(model: ModelInfo) {
+        // Cancel any existing observation or download job for this model
+        downloadJobs[model.id]?.cancel()
+
+        val targetPath = appDataDir.resolve("${model.id}.litertlm")
+        val job = viewModelScope.launch {
+            modelDownloader.downloadModel(
+                url = model.url,
+                targetPath = targetPath,
+                token = _uiState.value.hfToken
+            ).collect { status ->
+                when (status) {
+                    is DownloadStatus.Progress -> updateModelStatus(
                         model.id,
-                        ModelDownloadStatus.Error(e.message ?: "Unknown error")
+                        ModelDownloadStatus.Downloading(status.progress)
                     )
-                } else {
-                    updateModelStatus(model.id, ModelDownloadStatus.NotDownloaded)
-                }
-                downloadJobs.remove(model.id)
-                viewModelScope.launch(Dispatchers.Default) {
-                    runCatching {
-                        fileSystem.delete(
-                            targetPath
-                        )
+
+                    is DownloadStatus.Success -> {
+                        updateModelStatus(model.id, ModelDownloadStatus.Downloaded)
+                        downloadJobs.remove(model.id)
+                        modelRepository.notifyModelsChanged()
+
+                        val savedSelectedId = settings.selectedModelId.first()
+                        if (savedSelectedId == null) {
+                            settings.setSelectedModelId(model.id)
+                        }
+                    }
+
+                    is DownloadStatus.Error -> {
+                        updateModelStatus(model.id, ModelDownloadStatus.Error(status.message))
+                        downloadJobs.remove(model.id)
+                        viewModelScope.launch(Dispatchers.Default) {
+                            runCatching {
+                                fileSystem.delete(
+                                    targetPath
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -204,6 +266,7 @@ class ModelManagementViewModel(
     }
 
     private fun cancelDownload(modelId: String) {
+        modelDownloader.cancelDownload(modelId)
         downloadJobs[modelId]?.cancel()
         downloadJobs.remove(modelId)
         updateModelStatus(modelId, ModelDownloadStatus.NotDownloaded)

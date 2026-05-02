@@ -19,5 +19,7 @@ expect class LiteRtEngine() : AiEngine {
 
     override suspend fun clearConversation()
 
+    override val isLowConstraintDevice: Boolean
+
     override suspend fun close()
 }

@@ -66,7 +66,8 @@ class ChatViewModel(
         _uiState.update {
             it.copy(
                 isSpeechRecognitionSupported = speechRecognizerManager.isSupported,
-                showDownloadDialog = (getPlatformType() == PlatformType.WasmJs) || (getPlatformType() == PlatformType.Js)
+                showDownloadDialog = (getPlatformType() == PlatformType.WasmJs) || (getPlatformType() == PlatformType.Js),
+                isLowConstraintDevice = engine.isLowConstraintDevice
             )
         }
 
@@ -155,20 +156,25 @@ class ChatViewModel(
 
     private fun observeSelectedModel() {
         viewModelScope.launch {
-            settings.selectedModelId
-                .distinctUntilChanged()
-                .collect { id ->
-                    val models = modelRepository.getModelsWithStatus()
+            combine(
+                settings.selectedModelId.distinctUntilChanged(),
+                modelRepository.modelsChanged
+            ) { id, _ ->
+                val models = modelRepository.getModelsWithStatus()
+                val model = models.find { it.id == id } ?: return@combine
 
-                    val model = models.find { it.id == id } ?: return@collect
-                    
-                    if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
-                        _uiState.update { it.copy(selectedModel = model) }
-                        loadModel(model)
-                    } else {
-                        _uiState.update { it.copy(selectedModel = model, isModelReady = false) }
-                    }
+                if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
+                    _uiState.update { it.copy(selectedModel = model) }
+                    loadModel(model)
+                } else {
+                    _uiState.update { it.copy(selectedModel = model, isModelReady = false) }
                 }
+            }.collect {}
+        }
+
+        // Trigger first load
+        viewModelScope.launch {
+            modelRepository.notifyModelsChanged()
         }
     }
 

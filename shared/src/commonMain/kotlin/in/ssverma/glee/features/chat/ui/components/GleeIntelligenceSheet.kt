@@ -45,14 +45,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.backend_auto
-import glee.shared.generated.resources.backend_cpu
-import glee.shared.generated.resources.backend_gpu
-import glee.shared.generated.resources.backend_npu
+import glee.shared.generated.resources.cancel
 import glee.shared.generated.resources.done
 import glee.shared.generated.resources.intelligence
+import glee.shared.generated.resources.low_end_device_warning_desc
+import glee.shared.generated.resources.low_end_device_warning_title
 import glee.shared.generated.resources.model_backend
 import glee.shared.generated.resources.model_backend_info
 import glee.shared.generated.resources.model_config
+import glee.shared.generated.resources.proceed_anyway
 import glee.shared.generated.resources.restore_defaults
 import glee.shared.generated.resources.system_prompt
 import glee.shared.generated.resources.system_prompt_info
@@ -75,8 +76,10 @@ fun GleeIntelligenceSheet(
     onRestoreDefaultPrompt: () -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
+    isLowConstraintDevice: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    var pendingBackend by remember { mutableStateOf<BackendType?>(null) }
     var infoTitle by remember { mutableStateOf<String?>(null) }
     var infoText by remember { mutableStateOf<StringResource?>(null) }
 
@@ -126,7 +129,9 @@ fun GleeIntelligenceSheet(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                            alpha = 0.2f
+                        )
                     )
                 )
             }
@@ -177,12 +182,24 @@ fun GleeIntelligenceSheet(
                         BackendChip(
                             label = "NPU",
                             selected = config.preferredBackend == BackendType.Npu,
-                            onClick = { onConfigChange(config.copy(preferredBackend = BackendType.Npu)) }
+                            onClick = {
+                                if (isLowConstraintDevice) {
+                                    pendingBackend = BackendType.Npu
+                                } else {
+                                    onConfigChange(config.copy(preferredBackend = BackendType.Npu))
+                                }
+                            }
                         )
                         BackendChip(
                             label = "GPU",
                             selected = config.preferredBackend == BackendType.Gpu,
-                            onClick = { onConfigChange(config.copy(preferredBackend = BackendType.Gpu)) }
+                            onClick = {
+                                if (isLowConstraintDevice) {
+                                    pendingBackend = BackendType.Gpu
+                                } else {
+                                    onConfigChange(config.copy(preferredBackend = BackendType.Gpu))
+                                }
+                            }
                         )
                         BackendChip(
                             label = "CPU",
@@ -192,6 +209,29 @@ fun GleeIntelligenceSheet(
                     }
                 }
             }
+        }
+
+        if (pendingBackend != null) {
+            AlertDialog(
+                onDismissRequest = { pendingBackend = null },
+                title = { Text(stringResource(Res.string.low_end_device_warning_title)) },
+                text = { Text(stringResource(Res.string.low_end_device_warning_desc)) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            onConfigChange(config.copy(preferredBackend = pendingBackend!!))
+                            pendingBackend = null
+                        }
+                    ) {
+                        Text(stringResource(Res.string.proceed_anyway))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingBackend = null }) {
+                        Text(stringResource(Res.string.cancel))
+                    }
+                }
+            )
         }
 
         Button(

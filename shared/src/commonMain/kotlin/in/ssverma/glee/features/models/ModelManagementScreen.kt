@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
+import glee.shared.generated.resources.allow
 import glee.shared.generated.resources.cancel
 import glee.shared.generated.resources.cancel_download_confirm
 import glee.shared.generated.resources.cancel_download_desc
@@ -78,12 +79,18 @@ import glee.shared.generated.resources.importing_model_desc
 import glee.shared.generated.resources.learn_more_license
 import glee.shared.generated.resources.manage_models_desc
 import glee.shared.generated.resources.model_management
+import glee.shared.generated.resources.notification_rationale_desc
+import glee.shared.generated.resources.notification_rationale_title
 import glee.shared.generated.resources.ok
+import glee.shared.generated.resources.proceed_anyway
 import glee.shared.generated.resources.recommended
 import glee.shared.generated.resources.retry
+import glee.shared.generated.resources.settings
 import glee.shared.generated.resources.try_it
+import `in`.ssverma.glee.core.common.platform.PermissionType
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
+import `in`.ssverma.glee.features.chat.ui.rememberPermissionLauncher
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -105,6 +112,10 @@ fun ModelManagementScreen(
         mode = PickerMode.Single
     ) { file ->
         file?.let { viewModel.onIntent(ModelManagementIntent.ImportModelFile(it)) }
+    }
+
+    val permissionLauncher = rememberPermissionLauncher(PermissionType.Notifications) { _ ->
+        // No-op here, as we start the download immediately in the button click now
     }
 
     Scaffold(
@@ -166,24 +177,16 @@ fun ModelManagementScreen(
                                 model = model,
                                 onDownload = {
                                     viewModel.onIntent(
-                                        ModelManagementIntent.DownloadModel(
+                                        ModelManagementIntent.RequestDownloadModel(
                                             model
                                         )
                                     )
                                 },
                                 onCancel = {
-                                    viewModel.onIntent(
-                                        ModelManagementIntent.CancelDownload(
-                                            model.id
-                                        )
-                                    )
+                                    viewModel.onIntent(ModelManagementIntent.CancelDownload(model.id))
                                 },
                                 onDelete = {
-                                    viewModel.onIntent(
-                                        ModelManagementIntent.DeleteModel(
-                                            model
-                                        )
-                                    )
+                                    viewModel.onIntent(ModelManagementIntent.DeleteModel(model))
                                 },
                                 onSelect = {
                                     viewModel.onIntent(ModelManagementIntent.SelectModel(model))
@@ -199,6 +202,43 @@ fun ModelManagementScreen(
                 }
             }
         }
+    }
+
+    if (uiState.modelForNotificationRationale != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ModelManagementIntent.DismissNotificationRationale) },
+            title = { Text(stringResource(Res.string.notification_rationale_title)) },
+            text = { Text(stringResource(Res.string.notification_rationale_desc)) },
+            confirmButton = {
+                if (uiState.isPermanentlyDenied) {
+                    Button(onClick = { viewModel.onIntent(ModelManagementIntent.OpenAppSettings) }) {
+                        Text(stringResource(Res.string.settings))
+                    }
+                } else {
+                    Button(onClick = {
+                        uiState.modelForNotificationRationale?.let {
+                            viewModel.onIntent(ModelManagementIntent.DownloadModel(it))
+                        }
+                        permissionLauncher()
+                        viewModel.onIntent(ModelManagementIntent.DismissNotificationRationale)
+                    }) {
+                        Text(stringResource(Res.string.allow))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        uiState.modelForNotificationRationale?.let {
+                            viewModel.onIntent(ModelManagementIntent.DownloadModel(it))
+                        }
+                        viewModel.onIntent(ModelManagementIntent.DismissNotificationRationale)
+                    }
+                ) {
+                    Text(stringResource(Res.string.proceed_anyway))
+                }
+            }
+        )
     }
 
     uiState.modelToDelete?.let { model ->

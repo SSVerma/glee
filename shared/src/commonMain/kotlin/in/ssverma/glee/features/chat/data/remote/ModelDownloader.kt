@@ -19,6 +19,8 @@ import org.jetbrains.compose.resources.getString
 
 interface ModelDownloader {
     fun downloadModel(url: String, targetPath: Path, token: String? = null): Flow<DownloadStatus>
+    fun observeDownload(modelId: String): Flow<DownloadStatus>? = null
+    fun cancelDownload(modelId: String) {}
 }
 
 class KtorModelDownloader(

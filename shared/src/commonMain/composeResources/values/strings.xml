@@ -2,7 +2,7 @@
     <string name="app_name">Glee</string>
     <string name="meet_glee">Meet Glee, your personal AI assistant</string>
     <string name="ask_glee">Ask Glee</string>
-    <string name="model_loading">Model loading...</string>
+    <string name="waiting_for_intelligence">Waiting for intelligence initialization...</string>
     <string name="model_not_ready_warning">Model not ready. Click here to download or load a model.</string>
     <string name="new_chat">New Chat</string>
     <string name="recent_conversations">RECENT CONVERSATIONS</string>
@@ -136,21 +136,13 @@
     <string name="initializing_model_banner">Waking up Glee Intelligence…</string>
     <string name="initializing_model_desc">This usually takes a few seconds as we load the AI into your device memory.</string>
     <string name="gemma_4_e2b_name">Gemma 4 E2B</string>
-    <string name="gemma_4_e2b_desc">State-of-the-art reasoning for compact devices. Best for coding, high-fidelity chat, and technical logic.</string>
+    <string name="gemma_4_e2b_desc">Smart and fast AI for everyday chats, questions, and quick help.</string>
     <string name="gemma_4_e2b_best_for">Coding assistance, technical writing, complex reasoning.</string>
     <string name="gemma_4_e2b_resource_usage">Requires ~4GB RAM. ~2.6GB storage.</string>
     <string name="gemma_4_e4b_name">Gemma 4 E4B</string>
     <string name="gemma_4_e4b_desc">Maximum capacity for edge intelligence. Use for deep analysis where accuracy is the top priority.</string>
     <string name="gemma_4_e4b_best_for">Mathematical proofs, deep technical research, high-precision logic.</string>
     <string name="gemma_4_e4b_resource_usage">Requires ~8GB RAM. ~3.7GB storage.</string>
-    <string name="gemma_3n_e2b_name">Gemma 3n E2B</string>
-    <string name="gemma_3n_e2b_desc">High-speed multimodal intelligence. Perfect for quick visual analysis and ultra-fast chatting.</string>
-    <string name="gemma_3n_e2b_best_for">Quick queries, simple visual identification, low-power chatting.</string>
-    <string name="gemma_3n_e2b_resource_usage">Requires ~4GB RAM. ~3.6GB storage.</string>
-    <string name="phi_4_name">Phi-4</string>
-    <string name="phi_4_desc">Efficient small model optimized for logic and math from Microsoft.</string>
-    <string name="phi_4_best_for">Logical games, math tutor, structured queries.</string>
-    <string name="phi_4_resource_usage">Requires ~3GB RAM. ~2.1GB storage.</string>
     <string name="describe_image">Describe the image</string>
     <string name="importing_model">Importing Model…</string>
     <string name="importing_model_desc">Copying file to app storage…</string>
@@ -171,4 +163,10 @@
     <string name="continue_on_web">Continue on Web</string>
     <string name="github_repo">GitHub Repository</string>
     <string name="open_source_desc">Glee is fully open source. Star us on GitHub!</string>
+    <string name="low_end_device_warning_title">Performance Warning</string>
+    <string name="low_end_device_warning_desc">Your device has limited resources. Selecting NPU or GPU may cause the app to hang or crash. We recommend using CPU for better stability. Do you want to proceed?</string>
+    <string name="proceed_anyway">Proceed Anyway</string>
+    <string name="notification_rationale_title">Download Notifications</string>
+    <string name="notification_rationale_desc">We need notification permission to show the download progress in your system tray. This allows the download to continue reliably even if you leave the app. If you deny this, the download will still start, but you won't see the progress outside the app and download might not be succeeded.</string>
+    <string name="allow">Allow</string>
 </resources>

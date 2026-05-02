@@ -22,6 +22,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.io.File
 
 actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
     private val context: Context by inject()
@@ -30,6 +31,8 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
     private var systemPrompt: String = ""
     private var isSystemPromptSent: Boolean = false
     private val mutex = Mutex()
+
+    actual override val isLowConstraintDevice: Boolean by lazy { checkIsLowConstraintDevice() }
 
     actual override suspend fun loadModel(config: ModelConfig): Result<Unit> = mutex.withLock {
         withContext(Dispatchers.Default) {
@@ -67,7 +70,7 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
 
                     BackendType.Auto -> {
                         // Priority: Stability Check -> NPU -> GPU -> CPU
-                        if (isLowConstraintDevice()) {
+                        if (isLowConstraintDevice) {
                             initializeCpuEngine(config.modelPath, config.maxNumImages)
                         } else {
                             tryInitializeNpu(config)
@@ -100,7 +103,8 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
             "libLiteRtDispatch_MTK.so",
             "libLiteRtDispatch_Google.so"
         )
-        val hasDispatchLib = dispatchLibs.any { java.io.File(nativeLibDir, it).exists() }
+
+        val hasDispatchLib = dispatchLibs.any { File(nativeLibDir, it).exists() }
 
         if (!hasDispatchLib) {
             Log.d(
@@ -119,10 +123,10 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
                 visionBackend = if (config.maxNumImages > 0) npuBackend else null,
                 maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
             )
-            val e = Engine(npuConfig)
-            e.initialize()
+            val engine = Engine(npuConfig)
+            engine.initialize()
             Log.d("LiteRtEngine", "NPU initialization successful")
-            e
+            engine
         } catch (e: Throwable) {
             Log.w("LiteRtEngine", "NPU initialization failed: ${e.message}")
             null
@@ -165,39 +169,44 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
         return e
     }
 
-    private fun isLowConstraintDevice(): Boolean {
-        return true // TODO: need to fix
-//        // 1. RAM check: Devices with < 6.5GB RAM (effectively 6GB tier) struggle with LLM GPU allocation
-//        val totalRamGb = getSystemMetrics().getTotalRamGb()
-//        if (totalRamGb < 6.5f) {
-//            Log.d("LiteRtEngine", "Low RAM device detected ($totalRamGb GB). Forcing CPU for stability.")
-//            return true
-//        }
-//
-//        // 2. Hardware check: Detect chipsets with known GPU stability issues for LiteRT-LM
-//        val hardware = android.os.Build.HARDWARE.lowercase()
-//        val board = android.os.Build.BOARD.lowercase()
-//        val soc = hardware + board
-//
-//        // Pixel 6 (G1), Pixel 7 (G2) frequently hang or produce gibberish in GPU mode
-//        val isTensorG1orG2 = soc.contains("gs101") || // Tensor G1
-//                soc.contains("gs201") || // Tensor G2
-//                soc.contains("whitechapel") // Early Tensor reference
-//
-//        if (isTensorG1orG2) {
-//            Log.d("LiteRtEngine", "Tensor G1/G2 detected ($soc). Forcing CPU for stability.")
-//            return true
-//        }
-//
-//        // 3. Mali GPU stability: Many mid-range Mali GPUs struggle with the heavy compute load of LLMs
-//        // and cause UI starvation/hangs.
-//        val isMali = hardware.contains("mali") || board.contains("mali")
-//        if (isMali && totalRamGb < 9f) { // Be conservative with Mali + < 12GB RAM
-//            Log.d("LiteRtEngine", "Mid-range Mali GPU detected on $totalRamGb GB device. Forcing CPU.")
-//            return true
-//        }
-//
-//        return false
+    private fun checkIsLowConstraintDevice(): Boolean {
+        // 1. RAM check: Devices with < 6.5GB RAM (effectively 6GB tier) struggle with LLM GPU allocation
+        val totalRamGb = getSystemMetrics().getTotalRamGb()
+        if (totalRamGb < 6.5f) {
+            Log.d(
+                "LiteRtEngine",
+                "Low RAM device detected ($totalRamGb GB). Forcing CPU for stability."
+            )
+            return true
+        }
+
+        // 2. Hardware check: Detect chipsets with known GPU stability issues for LiteRT-LM
+        val hardware = android.os.Build.HARDWARE.lowercase()
+        val board = android.os.Build.BOARD.lowercase()
+        val soc = hardware + board
+
+        // Pixel 6 (G1), Pixel 7 (G2) frequently hang or produce gibberish in GPU mode
+        val isTensorG1orG2 = soc.contains("gs101") || // Tensor G1
+                soc.contains("gs201") || // Tensor G2
+                soc.contains("whitechapel") // Early Tensor reference
+
+        if (isTensorG1orG2) {
+            Log.d("LiteRtEngine", "Tensor G1/G2 detected ($soc). Forcing CPU for stability.")
+            return true
+        }
+
+        // 3. Mali GPU stability: Many mid-range Mali GPUs struggle with the heavy compute load of LLMs
+        // and cause UI starvation/hangs.
+        val isMali = hardware.contains("mali") || board.contains("mali")
+        if (isMali && totalRamGb < 9f) { // Be conservative with Mali + < 12GB RAM
+            Log.d(
+                "LiteRtEngine",
+                "Mid-range Mali GPU detected on $totalRamGb GB device. Forcing CPU."
+            )
+            return true
+        }
+
+        return false
     }
 
     actual override suspend fun clearConversation() = mutex.withLock {

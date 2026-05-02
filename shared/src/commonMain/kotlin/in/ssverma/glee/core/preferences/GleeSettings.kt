@@ -23,6 +23,7 @@ class GleeSettings(private val settings: ObservableSettings) {
         private const val KEY_MODEL_BACKEND = "model_backend"
         private const val KEY_MODEL_IS_AGENTIC = "model_is_agentic"
         private const val KEY_SELECTED_MODEL_ID = "selected_model_id"
+        private const val KEY_HAS_REQUESTED_NOTIFICATIONS = "has_requested_notifications"
     }
 
     @OptIn(ExperimentalSettingsApi::class)
@@ -92,5 +93,13 @@ class GleeSettings(private val settings: ObservableSettings) {
 
     fun setAdaptiveColorsEnabled(enabled: Boolean) {
         settings[KEY_ADAPTIVE_COLORS] = enabled
+    }
+
+    @OptIn(ExperimentalSettingsApi::class)
+    val hasRequestedNotifications: Flow<Boolean> =
+        flowSettings.getBooleanFlow(KEY_HAS_REQUESTED_NOTIFICATIONS, false)
+
+    fun setHasRequestedNotifications(requested: Boolean) {
+        settings[KEY_HAS_REQUESTED_NOTIFICATIONS] = requested
     }
 }

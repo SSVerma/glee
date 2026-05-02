@@ -205,6 +205,8 @@ actual class LiteRtEngine actual constructor() : AiEngine {
 
     actual override suspend fun clearConversation() {}
 
+    actual override val isLowConstraintDevice: Boolean = false
+
     actual override suspend fun close() {
         llmInference?.let {
             closeLlmInferenceJs(it)

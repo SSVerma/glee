@@ -77,6 +77,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.litertlm.android)
+            implementation(libs.androidx.work.ktx)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
 

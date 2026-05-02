@@ -32,6 +32,8 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         // Implementation
     }
 
+    override val isLowConstraintDevice: Boolean = false
+
     actual override suspend fun close() {
         // Release resources
     }

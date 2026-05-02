@@ -21,6 +21,8 @@ import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
 import `in`.ssverma.glee.features.chat.data.remote.KtorModelDownloader
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 import `in`.ssverma.glee.core.common.platform.OkioFileSystem
+import `in`.ssverma.glee.core.common.platform.PermissionManager
+import `in`.ssverma.glee.core.common.platform.NoOpPermissionManager
 
 class IosUrlLauncher : UrlLauncher {
     override fun launchUrl(url: String): Boolean {
@@ -49,6 +51,7 @@ actual val platformFileSystem: FileSystem = FileSystem.SYSTEM
 actual val platformModule: Module = module {
     single { platformFileSystem }
     single<UrlLauncher> { IosUrlLauncher() }
+    single<PermissionManager> { NoOpPermissionManager() }
     single<SpeechRecognizerManager> { IosSpeechRecognizerManager() }
     single<ModelDownloader> { KtorModelDownloader(get(), get()) }
     single<GleeFileSystem> { OkioFileSystem(get(), get(named("appDataDir"))) }

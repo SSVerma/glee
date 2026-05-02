@@ -63,9 +63,9 @@ import glee.shared.generated.resources.action
 import glee.shared.generated.resources.ai_disclosure
 import glee.shared.generated.resources.ask_glee
 import glee.shared.generated.resources.attach
-import glee.shared.generated.resources.model_loading
 import glee.shared.generated.resources.select_model
 import glee.shared.generated.resources.tools
+import glee.shared.generated.resources.waiting_for_intelligence
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
 import org.jetbrains.compose.resources.stringResource
@@ -141,7 +141,7 @@ fun ChatInputBar(
                                 if (input.isEmpty()) {
                                     Text(
                                         text = if (isModelReady) stringResource(Res.string.ask_glee)
-                                        else stringResource(Res.string.model_loading),
+                                        else stringResource(Res.string.waiting_for_intelligence),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                             alpha = 0.6f

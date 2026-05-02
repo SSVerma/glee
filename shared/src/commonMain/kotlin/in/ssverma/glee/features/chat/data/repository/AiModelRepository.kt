@@ -189,6 +189,7 @@ class AiModelRepository(
 
                 customModelsList.add(model)
                 saveCustomModels()
+                _modelsChanged.emit(Unit)
 
                 Result.success(model)
             } catch (e: Throwable) {
@@ -208,5 +209,10 @@ class AiModelRepository(
         if (fileSystem.exists(path)) {
             fileSystem.delete(path)
         }
+        _modelsChanged.emit(Unit)
+    }
+
+    suspend fun notifyModelsChanged() {
+        _modelsChanged.emit(Unit)
     }
 }

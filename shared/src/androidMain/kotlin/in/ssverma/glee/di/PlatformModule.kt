@@ -24,8 +24,11 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.emptyFlow
 import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
 import `in`.ssverma.glee.features.chat.data.remote.KtorModelDownloader
+import `in`.ssverma.glee.features.chat.data.remote.AndroidModelDownloader
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 import `in`.ssverma.glee.core.common.platform.OkioFileSystem
+import `in`.ssverma.glee.core.common.platform.PermissionManager
+import `in`.ssverma.glee.core.common.platform.AndroidPermissionManager
 
 class AndroidUrlLauncher(private val context: Context) : UrlLauncher {
     override fun launchUrl(url: String): Boolean {
@@ -37,6 +40,16 @@ class AndroidUrlLauncher(private val context: Context) : UrlLauncher {
             true
         } catch (e: Exception) {
             false
+        }
+    }
+
+    override fun openAppSettings() {
+        runCatching {
+            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
         }
     }
 }
@@ -121,8 +134,10 @@ actual val platformFileSystem: FileSystem = FileSystem.SYSTEM
 actual val platformModule: Module = module {
     single { platformFileSystem }
     single<UrlLauncher> { AndroidUrlLauncher(get()) }
+    single<PermissionManager> { AndroidPermissionManager(get()) }
     single<SpeechRecognizerManager> { AndroidSpeechRecognizerManager(get()) }
-    single<ModelDownloader> { KtorModelDownloader(get(), get()) }
+    single { KtorModelDownloader(get(), get()) }
+    single<ModelDownloader> { AndroidModelDownloader(get()) }
     single<GleeFileSystem> { OkioFileSystem(get(), get(named("appDataDir"))) }
 
     single {

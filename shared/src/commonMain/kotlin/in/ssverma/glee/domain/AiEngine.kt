@@ -20,6 +20,8 @@ interface AiEngine {
 
     suspend fun clearConversation()
 
+    val isLowConstraintDevice: Boolean
+
     suspend fun close()
 }
 

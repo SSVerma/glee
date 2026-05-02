@@ -2,8 +2,13 @@ package `in`.ssverma.glee.features.chat.ui
 
 import androidx.compose.runtime.Composable
 
+import `in`.ssverma.glee.core.common.platform.PermissionType
+
 @Composable
-actual fun rememberPermissionLauncher(onResult: (Boolean) -> Unit): () -> Unit {
+actual fun rememberPermissionLauncher(
+    permissionType: PermissionType,
+    onResult: (Boolean) -> Unit
+): () -> Unit {
     return {
         onResult(true) // No-op for other platforms
     }

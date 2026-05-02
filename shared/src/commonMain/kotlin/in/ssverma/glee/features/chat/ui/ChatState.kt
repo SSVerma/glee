@@ -36,7 +36,8 @@ data class ChatState(
     val showIncognitoInfoDialog: Boolean = false,
     val isSpeechRecognitionSupported: Boolean = false,
     val isRecordingVoice: Boolean = false,
-    val showDownloadDialog: Boolean = false
+    val showDownloadDialog: Boolean = false,
+    val isLowConstraintDevice: Boolean = false
 )
 
 sealed interface ChatIntent {

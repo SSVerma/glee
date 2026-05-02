@@ -115,6 +115,8 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         }
     }
 
+    actual override val isLowConstraintDevice: Boolean = false
+
     actual override suspend fun close() = mutex.withLock {
         closeInternal()
     }

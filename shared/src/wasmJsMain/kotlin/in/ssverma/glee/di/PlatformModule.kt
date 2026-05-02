@@ -15,6 +15,8 @@ import `in`.ssverma.glee.features.chat.data.remote.ModelDownloader
 import `in`.ssverma.glee.features.chat.data.remote.WasmModelDownloader
 import `in`.ssverma.glee.core.common.platform.GleeFileSystem
 import `in`.ssverma.glee.core.common.platform.WasmGleeFileSystem
+import `in`.ssverma.glee.core.common.platform.PermissionManager
+import `in`.ssverma.glee.core.common.platform.NoOpPermissionManager
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -133,6 +135,7 @@ class WasmObservableSettings : ObservableSettings {
 actual val platformModule: Module = module {
     single { platformFileSystem }
     single<UrlLauncher> { WebUrlLauncher() }
+    single<PermissionManager> { NoOpPermissionManager() }
     single<SpeechRecognizerManager> { WebSpeechRecognizerManager() }
     single<ModelDownloader> { WasmModelDownloader() }
     single<GleeFileSystem> { WasmGleeFileSystem(get(named("appDataDir"))) }

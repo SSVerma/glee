@@ -29,6 +29,8 @@ actual class LiteRtEngine actual constructor() : AiEngine {
     actual override suspend fun clearConversation() {
     }
 
+    override val isLowConstraintDevice: Boolean = false
+
     actual override suspend fun close() {
     }
 }

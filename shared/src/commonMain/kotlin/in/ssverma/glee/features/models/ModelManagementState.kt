@@ -13,7 +13,9 @@ data class ModelManagementState(
     val modelToCancelDownloadId: String? = null,
     val isImporting: Boolean = false,
     val importProgress: Float = 0f,
-    val importError: String? = null
+    val importError: String? = null,
+    val modelForNotificationRationale: ModelInfo? = null,
+    val isPermanentlyDenied: Boolean = false
 )
 
 sealed interface ModelManagementIntent {
@@ -29,4 +31,7 @@ sealed interface ModelManagementIntent {
     data object ResetImportError : ModelManagementIntent
     data class ImportModelFile(val file: PlatformFile) : ModelManagementIntent
     data object CancelImport : ModelManagementIntent
+    data class RequestDownloadModel(val model: ModelInfo) : ModelManagementIntent
+    data object DismissNotificationRationale : ModelManagementIntent
+    data object OpenAppSettings : ModelManagementIntent
 }

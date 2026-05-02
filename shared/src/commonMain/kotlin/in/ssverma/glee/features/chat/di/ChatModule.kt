@@ -51,7 +51,9 @@ val chatModule = module {
             modelRepository = get(),
             modelDownloader = get(),
             fileSystem = get(),
-            appDataDir = get(named("appDataDir"))
+            appDataDir = get(named("appDataDir")),
+            permissionManager = get(),
+            urlLauncher = get()
         )
     }
 

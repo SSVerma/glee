@@ -9,6 +9,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import io.github.vinceglb.filekit.core.FileKit
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)

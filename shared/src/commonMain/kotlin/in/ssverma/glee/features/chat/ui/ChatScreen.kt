@@ -80,6 +80,7 @@ import glee.shared.generated.resources.incognito_info_title
 import glee.shared.generated.resources.initializing_model_banner
 import `in`.ssverma.glee.core.ui.components.GleeSidebar
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
+import `in`.ssverma.glee.features.chat.domain.model.ChatMetrics
 import `in`.ssverma.glee.features.chat.domain.model.MessageList
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
@@ -108,9 +109,14 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
+import `in`.ssverma.glee.core.common.platform.PermissionType
+
 // For permission handling
 @Composable
-expect fun rememberPermissionLauncher(onResult: (Boolean) -> Unit): () -> Unit
+expect fun rememberPermissionLauncher(
+    permissionType: PermissionType,
+    onResult: (Boolean) -> Unit
+): () -> Unit
 
 @Composable
 fun ChatScreen(
@@ -159,7 +165,7 @@ fun ChatScreen(
         modelManagementState.availableModels.isNotEmpty() && !anyModelDownloaded
     }
 
-    val permissionLauncher = rememberPermissionLauncher { granted ->
+    val permissionLauncher = rememberPermissionLauncher(PermissionType.RecordAudio) { granted ->
         if (granted) {
             viewModel.onIntent(ChatIntent.ToggleVoiceRecording)
         }
@@ -239,6 +245,7 @@ fun ChatScreen(
                     reversedMessages = reversedMessages,
                     isStreaming = uiState.isStreaming,
                     streamingContent = uiState.streamingContent,
+                    metrics = uiState.metrics,
                     onIntent = viewModel::onIntent,
                     onToggleVoiceRecording = {
                         permissionLauncher()
@@ -311,7 +318,8 @@ fun ChatScreen(
                                         onSave = {
                                             settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
                                         },
-                                        onBack = { currentActionSheet = ChatActionSheetType.Root }
+                                        onBack = { currentActionSheet = ChatActionSheetType.Root },
+                                        isLowConstraintDevice = uiState.isLowConstraintDevice
                                     )
                                 }
 
@@ -395,7 +403,8 @@ fun ChatScreen(
                                 settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
                                 showActionSheet = false
                             },
-                            onBack = { currentActionSheet = ChatActionSheetType.Root }
+                            onBack = { currentActionSheet = ChatActionSheetType.Root },
+                            isLowConstraintDevice = uiState.isLowConstraintDevice
                         )
                     }
 
@@ -522,6 +531,7 @@ fun ChatContent(
     reversedMessages: MessageList,
     isStreaming: Boolean,
     streamingContent: String,
+    metrics: ChatMetrics,
     onIntent: (ChatIntent) -> Unit,
     onToggleVoiceRecording: () -> Unit,
     onPickFile: () -> Unit,
@@ -549,6 +559,7 @@ fun ChatContent(
                 onMenuClick = onMenuClick,
                 onTogglePrivate = { onIntent(ChatIntent.TogglePrivateMode) },
                 onNewChat = { onIntent(ChatIntent.NewChat) },
+                metrics = metrics,
                 onDownloadAppsClick = { onIntent(ChatIntent.SetShowDownloadDialog(true)) },
                 scrollBehavior = scrollBehavior,
                 actionsEnabled = anyModelDownloaded
