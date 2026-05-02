@@ -38,4 +38,19 @@ val generateAndroidRelease = tasks.register<IncrementVersionTask>("generateAndro
     versionFile.set(layout.projectDirectory.file("../version.properties"))
 
     finalizedBy(":shared:bundleRelease", ":shared:assembleRelease")
+
+    doLast {
+        val apkDir = file("${project(":shared").layout.buildDirectory.get()}/outputs/apk/release")
+        val signedApk = apkDir.listFiles()?.find { it.name.endsWith(".apk") && !it.name.contains("unsigned") }
+
+        if (signedApk == null) {
+            println("\n" + "!".repeat(50))
+            println("WARNING: No signed APK found in $apkDir")
+            println("Your release.properties might be missing or incorrect.")
+            println("The build is 'unsigned' and cannot be installed on devices.")
+            println("!".repeat(50) + "\n")
+        } else {
+            println("\nSUCCESS: Signed APK generated at: ${signedApk.absolutePath}\n")
+        }
+    }
 }
