@@ -9,3 +9,5 @@ actual fun PlatformFile.toCoilPath(): String? = uri.toString()
 actual fun PlatformFile.getAbsolutePath(): String? = null
 
 actual fun PlatformFile.toJsFile(): Any? = null
+
+actual fun getOsType(): OsType = OsType.Android

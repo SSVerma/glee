@@ -6,6 +6,23 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/download/mac",
+        "destination": "https://github.com/ssverma/Glee/releases/latest/download/glee.dmg",
+        "type": 302
+      },
+      {
+        "source": "/download/windows",
+        "destination": "https://github.com/ssverma/Glee/releases/latest/download/glee.msi",
+        "type": 302
+      },
+      {
+        "source": "/download/linux",
+        "destination": "https://github.com/ssverma/Glee/releases/latest/download/glee.deb",
+        "type": 302
+      }
+    ],
     "rewrites": [
       {
         "source": "**",

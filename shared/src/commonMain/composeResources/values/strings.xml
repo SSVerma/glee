@@ -158,8 +158,8 @@
     <string name="requires_agentic_mode">Requires Agentic Mode</string>
     <string name="get_glee_app">Get the Glee App</string>
     <string name="web_performance_warning">The web version might be slow due to WebGPU limitations. For the best experience, download our native apps.</string>
-    <string name="download_for_desktop">Download for Desktop</string>
-    <string name="get_on_play_store">Get it on Play Store</string>
+    <string name="download_for_desktop">For Desktop</string>
+    <string name="download_android_app">Download Android App</string>
     <string name="continue_on_web">Continue on Web</string>
     <string name="github_repo">GitHub Repository</string>
     <string name="open_source_desc">Glee is fully open source. Star us on GitHub!</string>
@@ -167,6 +167,13 @@
     <string name="low_end_device_warning_desc">Your device has limited resources. Selecting NPU or GPU may cause the app to hang or crash. We recommend using CPU for better stability. Do you want to proceed?</string>
     <string name="proceed_anyway">Proceed Anyway</string>
     <string name="notification_rationale_title">Download Notifications</string>
-    <string name="notification_rationale_desc">We need notification permission to show the download progress in your system tray. This allows the download to continue reliably even if you leave the app. If you deny this, the download will still start, but you won't see the progress outside the app and download might not be succeeded.</string>
+    <string name="notification_rationale_desc">We need notification permission to show the download progress in your system tray. This allows the download to continue reliably even if you leave the app. If you deny this, the download will still start, but you won\'t see the progress outside the app and download might not be succeeded.</string>
     <string name="allow">Allow</string>
+    <string name="download_for_mac">Mac</string>
+    <string name="download_for_windows">Windows</string>
+    <string name="download_for_linux">Linux</string>
+    <string name="get_on_iphone">For iPhone/iPad</string>
+    <string name="get_for_desktop">For Desktop</string>
+    <string name="non_signed_warning">Non-signed build</string>
+    <string name="other_platforms">Other Platforms</string>
 </resources>
