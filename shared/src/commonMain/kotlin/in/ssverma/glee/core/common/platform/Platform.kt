@@ -22,3 +22,14 @@ expect fun PlatformFile.getAbsolutePath(): String?
  * Returns the browser File object if on Wasm/JS target.
  */
 expect fun PlatformFile.toJsFile(): Any?
+
+enum class OsType {
+    Android,
+    Ios,
+    Windows,
+    Mac,
+    Linux,
+    Unknown
+}
+
+expect fun getOsType(): OsType

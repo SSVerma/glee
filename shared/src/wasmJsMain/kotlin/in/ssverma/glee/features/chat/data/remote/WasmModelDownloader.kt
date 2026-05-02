@@ -57,8 +57,13 @@ class WasmModelDownloader : ModelDownloader {
         send(DownloadStatus.Progress(0f))
         try {
             val fileName = targetPath.name
+            var lastSentProgress = -1
             downloadToOpfsJs(url, fileName, token) { progress ->
-                trySend(DownloadStatus.Progress(progress))
+                val currentProgress = (progress * 100).toInt()
+                if (currentProgress > lastSentProgress) {
+                    lastSentProgress = currentProgress
+                    trySend(DownloadStatus.Progress(progress))
+                }
             }.await<JsAny?>()
 
             send(DownloadStatus.Success(targetPath))

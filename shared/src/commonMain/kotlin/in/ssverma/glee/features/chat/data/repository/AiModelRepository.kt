@@ -21,9 +21,9 @@ import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okio.Path
@@ -33,8 +33,8 @@ class AiModelRepository(
     private val fileSystem: GleeFileSystem,
     private val appDataDir: Path
 ) {
-    private val _modelsChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val modelsChanged: SharedFlow<Unit> = _modelsChanged.asSharedFlow()
+    private val _modelsChanged = MutableStateFlow(0L)
+    val modelsChanged: StateFlow<Long> = _modelsChanged.asStateFlow()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -61,7 +61,7 @@ class AiModelRepository(
         try {
             val content = json.encodeToString(customModelsList)
             fileSystem.writeFile(customModelsFile, content)
-            _modelsChanged.tryEmit(Unit)
+            _modelsChanged.value = currentTimeMillis()
         } catch (e: Exception) {
             println("[Glee] Failed to save custom models: ${e.message}")
         }
@@ -189,7 +189,7 @@ class AiModelRepository(
 
                 customModelsList.add(model)
                 saveCustomModels()
-                _modelsChanged.emit(Unit)
+                _modelsChanged.value = currentTimeMillis()
 
                 Result.success(model)
             } catch (e: Throwable) {
@@ -209,10 +209,10 @@ class AiModelRepository(
         if (fileSystem.exists(path)) {
             fileSystem.delete(path)
         }
-        _modelsChanged.emit(Unit)
+        _modelsChanged.value = currentTimeMillis()
     }
 
-    suspend fun notifyModelsChanged() {
-        _modelsChanged.emit(Unit)
+    fun notifyModelsChanged() {
+        _modelsChanged.value = currentTimeMillis()
     }
 }
