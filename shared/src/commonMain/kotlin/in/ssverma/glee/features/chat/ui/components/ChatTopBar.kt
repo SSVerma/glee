@@ -61,8 +61,10 @@ fun ChatTopBar(
                     AssistChip(
                         onClick = {},
                         label = {
+                            val latencySec = metrics.latencyMs / 1000f
+                            val latencyText = if (latencySec < 0.1f) "<0.1s" else "${latencySec.toString().take(3)}s"
                             Text(
-                                text = "${metrics.ramUsedGb.toString().take(3)}GB | ${metrics.latencyMs}ms",
+                                text = "${metrics.ramUsedGb.toString().take(3)}GB | $latencyText",
                                 fontSize = 10.sp
                             )
                         },

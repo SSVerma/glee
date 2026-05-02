@@ -171,11 +171,6 @@ class ChatViewModel(
                 }
             }.collect {}
         }
-
-        // Trigger first load
-        viewModelScope.launch {
-            modelRepository.notifyModelsChanged()
-        }
     }
 
     private fun refreshSuggestions() {

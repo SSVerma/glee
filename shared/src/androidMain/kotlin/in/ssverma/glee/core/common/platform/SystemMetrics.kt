@@ -12,7 +12,9 @@ class AndroidSystemMetrics : SystemMetrics, KoinComponent {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val memoryInfo = ActivityManager.MemoryInfo()
         activityManager.getMemoryInfo(memoryInfo)
-        return (memoryInfo.totalMem - memoryInfo.availMem) / (1024f * 1024f * 1024f)
+        val total = memoryInfo.totalMem / (1024f * 1024f * 1024f)
+        val used = (memoryInfo.totalMem - memoryInfo.availMem) / (1024f * 1024f * 1024f)
+        return used.coerceAtMost(total) // Cap used RAM to total
     }
 
     override fun getTotalRamGb(): Float {
