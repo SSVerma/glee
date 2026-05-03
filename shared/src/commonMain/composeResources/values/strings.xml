@@ -62,6 +62,7 @@
     <string name="agentic_mode_info">Enables Glee to use tools and reasoning steps to solve complex tasks. This may be slower as it involves multiple internal reasoning turns.</string>
     <string name="system_prompt_info">A persistent instruction that guides the model's behavior, personality, and constraints throughout the entire conversation.</string>
     <string name="done">Done</string>
+    <string name="save">Save</string>
     <string name="ai_disclosure">Glee can make mistakes. Consider verifying important information.</string>
     <string name="private_chat">Private Chat</string>
     <string name="incognito_desc">History will not be stored in this session.</string>

@@ -1,5 +1,6 @@
 package `in`.ssverma.glee.features.chat.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,7 @@ import glee.shared.generated.resources.model_backend_info
 import glee.shared.generated.resources.model_config
 import glee.shared.generated.resources.proceed_anyway
 import glee.shared.generated.resources.restore
+import glee.shared.generated.resources.save
 import glee.shared.generated.resources.system_prompt
 import glee.shared.generated.resources.system_prompt_info
 import glee.shared.generated.resources.temperature
@@ -246,7 +248,7 @@ fun GleeIntelligenceSheet(
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Text(stringResource(Res.string.done), fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.save), fontWeight = FontWeight.Bold)
         }
 
         if (infoTitle != null && infoText != null) {

@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -97,7 +97,7 @@ fun DeveloperCard(modifier: Modifier = Modifier) {
             Spacer(Modifier.weight(1f))
 
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Default.OpenInBrowser,
                 contentDescription = "Follow",
                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp)

@@ -142,10 +142,6 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
 
-                GithubCard(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
                 Spacer(Modifier.height(32.dp))
             }
         }
