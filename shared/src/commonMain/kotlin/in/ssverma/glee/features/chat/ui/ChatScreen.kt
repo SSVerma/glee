@@ -4,7 +4,6 @@ package `in`.ssverma.glee.features.chat.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,6 +13,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -34,7 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -66,7 +64,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.window.core.layout.WindowWidthSizeClass
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.cancel
 import glee.shared.generated.resources.copied_to_clipboard
@@ -78,6 +75,7 @@ import glee.shared.generated.resources.dont_show_again
 import glee.shared.generated.resources.incognito_desc
 import glee.shared.generated.resources.incognito_info_title
 import glee.shared.generated.resources.initializing_model_banner
+import `in`.ssverma.glee.core.common.platform.PermissionType
 import `in`.ssverma.glee.core.ui.components.GleeSidebar
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ChatMetrics
@@ -109,13 +107,9 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-import `in`.ssverma.glee.core.common.platform.PermissionType
-
-// For permission handling
 @Composable
 expect fun rememberPermissionLauncher(
-    permissionType: PermissionType,
-    onResult: (Boolean) -> Unit
+    permissionType: PermissionType, onResult: (Boolean) -> Unit
 ): () -> Unit
 
 @Composable
@@ -141,14 +135,11 @@ fun ChatScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    var isSidebarCollapsed by remember { mutableStateOf(false) }
     var showActionSheet by remember { mutableStateOf(false) }
     var currentActionSheet by remember { mutableStateOf(ChatActionSheetType.Root) }
 
     var showModelSelectionSheet by remember { mutableStateOf(false) }
-
-    val adaptiveInfo = currentWindowAdaptiveInfo()
-    val isWide = adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED
-    val isMedium = adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.MEDIUM
 
     val launcher = rememberFilePickerLauncher(
         type = PickerType.Image,
@@ -171,47 +162,62 @@ fun ChatScreen(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.width(300.dp)
-            ) {
-                GleeSidebar(
-                    conversations = uiState.conversations,
-                    selectedConversationId = uiState.currentConversationId,
-                    onConversationClick = {
-                        viewModel.onIntent(ChatIntent.StartConversation(it))
-                        scope.launch { drawerState.close() }
-                    },
-                    onDeleteConversation = {
-                        viewModel.onIntent(ChatIntent.DeleteConversation(it))
-                    },
-                    onNewChat = {
-                        viewModel.onIntent(ChatIntent.NewChat)
-                        scope.launch { drawerState.close() }
-                    },
-                    onModelManagement = {
-                        onModelManagement()
-                        scope.launch { drawerState.close() }
-                    },
-                    onManageSkills = {
-                        onManageSkills()
-                        scope.launch { drawerState.close() }
-                    },
-                    onSettings = {
-                        onSettings()
-                        scope.launch { drawerState.close() }
-                    }
-                )
-            }
-        },
-        gesturesEnabled = !isWide
-    ) {
-        Box(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val totalWidth = maxWidth
+        val sidebarWidth = 280.dp
+        val inspectorWidth = 350.dp
+        val minChatWidth = 500.dp
+
+        val isExpanded = totalWidth >= 840.dp
+
+        val showSidebarInRow = isExpanded && !isSidebarCollapsed
+        val remainingWidthAfterSidebar =
+            if (showSidebarInRow) totalWidth - sidebarWidth else totalWidth
+        val showInspectorInRow =
+            isExpanded && (remainingWidthAfterSidebar - inspectorWidth) >= minChatWidth
+
+        val isChatNarrow = remainingWidthAfterSidebar < 600.dp
+
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.width(300.dp)
+                ) {
+                    GleeSidebar(
+                        conversations = uiState.conversations,
+                        selectedConversationId = uiState.currentConversationId,
+                        onConversationClick = {
+                            viewModel.onIntent(ChatIntent.StartConversation(it))
+                            scope.launch { drawerState.close() }
+                        },
+                        onDeleteConversation = {
+                            viewModel.onIntent(ChatIntent.DeleteConversation(it))
+                        },
+                        onNewChat = {
+                            viewModel.onIntent(ChatIntent.NewChat)
+                            scope.launch { drawerState.close() }
+                        },
+                        onModelManagement = {
+                            onModelManagement()
+                            scope.launch { drawerState.close() }
+                        },
+                        onManageSkills = {
+                            onManageSkills()
+                            scope.launch { drawerState.close() }
+                        },
+                        onSettings = {
+                            onSettings()
+                            scope.launch { drawerState.close() }
+                        }
+                    )
+                }
+            },
+            gesturesEnabled = !showSidebarInRow
+        ) {
             Row(modifier = Modifier.fillMaxSize()) {
-                if (isWide) {
+                if (showSidebarInRow) {
                     GleeSidebar(
                         conversations = uiState.conversations,
                         selectedConversationId = uiState.currentConversationId,
@@ -221,7 +227,7 @@ fun ChatScreen(
                         onModelManagement = onModelManagement,
                         onManageSkills = onManageSkills,
                         onSettings = onSettings,
-                        modifier = Modifier.width(280.dp)
+                        modifier = Modifier.width(sidebarWidth)
                     )
                     VerticalDivider(
                         thickness = 1.dp,
@@ -251,23 +257,35 @@ fun ChatScreen(
                         permissionLauncher()
                     },
                     onPickFile = { launcher.launch() },
-                    onMenuClick = { scope.launch { drawerState.open() } },
+                    onMenuClick = {
+                        if (isExpanded) {
+                            isSidebarCollapsed = !isSidebarCollapsed
+                        } else {
+                            scope.launch { drawerState.open() }
+                        }
+                    },
                     onInspectorClick = {
-                        currentActionSheet = ChatActionSheetType.Root
-                        showActionSheet = true
+                        if (showInspectorInRow) {
+                            currentActionSheet = ChatActionSheetType.Root
+                        } else {
+                            currentActionSheet = ChatActionSheetType.Root
+                            showActionSheet = true
+                        }
                     },
                     onModelSelectionClick = { showModelSelectionSheet = true },
                     onModelManagement = onModelManagement,
-                    isWide = isWide,
+                    isSidebarVisible = showSidebarInRow,
+                    isInspectorVisible = showInspectorInRow,
+                    isChatNarrow = isChatNarrow,
                     modifier = Modifier.weight(1f)
                 )
 
-                if (isWide || isMedium) {
+                if (showInspectorInRow) {
                     VerticalDivider(
                         thickness = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
-                    Column(modifier = Modifier.width(350.dp).fillMaxHeight()) {
+                    Column(modifier = Modifier.width(inspectorWidth).fillMaxHeight()) {
                         AnimatedContent(
                             targetState = currentActionSheet,
                             transitionSpec = {
@@ -317,6 +335,7 @@ fun ChatScreen(
                                         },
                                         onSave = {
                                             settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
+                                            currentActionSheet = ChatActionSheetType.Root
                                         },
                                         onBack = { currentActionSheet = ChatActionSheetType.Root },
                                         isLowConstraintDevice = uiState.isLowConstraintDevice
@@ -356,14 +375,17 @@ fun ChatScreen(
     }
 
     if (showActionSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
         ModalBottomSheet(
             onDismissRequest = {
                 showActionSheet = false
                 currentActionSheet = ChatActionSheetType.Root
             },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
         ) {
-            Box(modifier = Modifier.fillMaxWidth().animateContentSize()) {
+            Box(modifier = Modifier.fillMaxWidth()) {
                 when (currentActionSheet) {
                     ChatActionSheetType.Root -> {
                         GleeActionMenuSheet(
@@ -385,23 +407,18 @@ fun ChatScreen(
                             config = settingsState.modelConfig,
                             systemPrompt = settingsState.systemPrompt,
                             onConfigChange = {
-                                settingsViewModel.onIntent(
-                                    SettingsIntent.UpdateModelConfig(
-                                        it
-                                    )
-                                )
+                                settingsViewModel.onIntent(SettingsIntent.UpdateModelConfig(it))
                             },
                             onUpdateSystemPrompt = {
                                 settingsViewModel.onIntent(
-                                    SettingsIntent.UpdateSystemPrompt(
-                                        it
-                                    )
+                                    SettingsIntent.UpdateSystemPrompt(it)
                                 )
                             },
                             onRestoreDefaultPrompt = { settingsViewModel.onIntent(SettingsIntent.RestoreDefaultSystemPrompt) },
                             onSave = {
                                 settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
                                 showActionSheet = false
+                                currentActionSheet = ChatActionSheetType.Root
                             },
                             onBack = { currentActionSheet = ChatActionSheetType.Root },
                             isLowConstraintDevice = uiState.isLowConstraintDevice
@@ -420,10 +437,7 @@ fun ChatScreen(
                             activeSkills = manageSkillsState.activeSkills,
                             onToggleSkill = { id, enabled ->
                                 manageToolsViewModel.onIntent(
-                                    ManageSkillsIntent.ToggleSkill(
-                                        id,
-                                        enabled
-                                    )
+                                    ManageSkillsIntent.ToggleSkill(id, enabled)
                                 )
                             },
                             onManageSkills = {
@@ -442,7 +456,8 @@ fun ChatScreen(
     if (showModelSelectionSheet) {
         ModalBottomSheet(
             onDismissRequest = { showModelSelectionSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
         ) {
             ModelSelectionContent(
                 availableModels = modelManagementState.availableModels,
@@ -456,10 +471,9 @@ fun ChatScreen(
                     showModelSelectionSheet = false
                 },
                 onManageModelsClick = {
-                    showModelSelectionSheet = false
                     onModelManagement()
-                },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)
+                    showModelSelectionSheet = false
+                }
             )
         }
     }
@@ -493,15 +507,11 @@ fun ChatScreen(
                 Column {
                     Text(stringResource(Res.string.incognito_desc))
                     Spacer(Modifier.height(16.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = !uiState.shouldShowIncognitoInfo,
-                            onCheckedChange = { viewModel.onIntent(ChatIntent.SetShowIncognitoInfo(!it)) }
-                        )
-                        Text(
-                            text = stringResource(Res.string.dont_show_again),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        Text(stringResource(Res.string.dont_show_again))
                     }
                 }
             },
@@ -539,7 +549,9 @@ fun ChatContent(
     onInspectorClick: () -> Unit,
     onModelSelectionClick: () -> Unit,
     onModelManagement: () -> Unit,
-    isWide: Boolean,
+    isSidebarVisible: Boolean,
+    isInspectorVisible: Boolean,
+    isChatNarrow: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -554,7 +566,7 @@ fun ChatContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             ChatTopBar(
-                showMenuIcon = !isWide && anyModelDownloaded,
+                showMenuIcon = !isSidebarVisible,
                 isPrivateMode = isPrivateMode,
                 onMenuClick = onMenuClick,
                 onTogglePrivate = { onIntent(ChatIntent.TogglePrivateMode) },
@@ -604,6 +616,7 @@ fun ChatContent(
                     onToggleVoiceRecording = onToggleVoiceRecording,
                     onInspectorClick = onInspectorClick,
                     onModelSelectionClick = onModelSelectionClick,
+                    showInspectorButton = !isInspectorVisible,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -630,7 +643,7 @@ fun ChatContent(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    horizontal = if (isWide) 64.dp else 16.dp,
+                    horizontal = if (!isChatNarrow) 64.dp else 16.dp,
                     vertical = 16.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -677,9 +690,7 @@ fun ChatContent(
 @Composable
 private fun InitializingInfoBar() {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
     ) {

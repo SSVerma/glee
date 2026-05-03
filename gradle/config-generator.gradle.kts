@@ -11,24 +11,31 @@ val hfTokenValue = gleeProperties.getProperty("HF_TOKEN") ?: ""
 // This is expected to be called from the shared module
 val generateGleeConfig = tasks.register("generateGleeConfig") {
     val hfToken = hfTokenValue
+    val obfuscatedToken = hfToken.map { it.code + 7 }.joinToString(", ")
+
     // Accessing ProjectConfig from buildSrc
-    val isRelease = project.hasProperty("buildType") && project.property("buildType") == "release" ||
-            gradle.startParameter.taskNames.any { task ->
-                val lowerTask = task.lowercase()
-                lowerTask.contains("release") || lowerTask.contains("publish") || lowerTask.contains("deploy")
-            }
-            
+    val isRelease =
+        project.hasProperty("buildType") && project.property("buildType") == "release" ||
+                gradle.startParameter.taskNames.any { task ->
+                    val lowerTask = task.lowercase()
+                    lowerTask.contains("release") ||
+                            lowerTask.contains("publish") ||
+                            lowerTask.contains("deploy") ||
+                            lowerTask.contains("bundle")
+                }
+
     val buildType = if (isRelease) BuildType.Release else BuildType.Debug
     val config = ProjectConfig.get(buildType, rootProject.projectDir)
-    
+
     val outputDir = layout.buildDirectory.dir("generated/glee/kotlin/in/ssverma/glee")
     outputs.dir(outputDir)
-    
+
     doLast {
         val dir = outputDir.get().asFile
         dir.mkdirs()
-        
-        dir.resolve("AppBuildConfig.kt").writeText("""
+
+        dir.resolve("AppBuildConfig.kt").writeText(
+            """
             package `in`.ssverma.glee
 
             import `in`.ssverma.glee.AppBuildConfig.BuildType
@@ -106,6 +113,8 @@ val generateGleeConfig = tasks.register("generateGleeConfig") {
             }
 
             object GleeConfig {
+                private val rawToken = listOf<Int>($obfuscatedToken)
+
                 val config = AppBuildConfig(
                     buildType = ${if (config.buildType is BuildType.Release) "BuildType.Release" else "BuildType.Debug"},
                     meta = AppBuildConfig.AppMetadata(
@@ -151,10 +160,11 @@ val generateGleeConfig = tasks.register("generateGleeConfig") {
                     web = AppBuildConfig.WebConfig(
                         pageTitle = "${config.web.pageTitle}"
                     ),
-                    hfToken = "$hfToken"
+                    hfToken = rawToken.map { (it - 7).toChar() }.joinToString("")
                 )
             }
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 }
 

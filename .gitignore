@@ -17,3 +17,6 @@ google-services.json
 .kotlin/
 kotlin-js-store/
 .firebase/
+
+# Firebase configuration
+iosApp/iosApp/GoogleService-Info.plist

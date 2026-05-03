@@ -1,5 +1,6 @@
 package `in`.ssverma.glee.features.chat.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -74,7 +76,7 @@ fun GleeActionMenuSheet(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        Surface(
+        OutlinedCard(
             shape = MaterialTheme.shapes.extraLarge,
             modifier = Modifier.fillMaxWidth(),
             onClick = { onToggleAgentic(!isAgentic) }
@@ -162,15 +164,17 @@ private fun ActionMenuItem(
     onClick: () -> Unit,
     enabled: Boolean = true
 ) {
-    Surface(
+    OutlinedCard(
         onClick = onClick,
         enabled = enabled,
         shape = MaterialTheme.shapes.extraLarge,
-        color = if (enabled) {
-            MaterialTheme.colorScheme.surface
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
-        },
+        modifier = Modifier.background(
+            color = if (enabled) {
+                MaterialTheme.colorScheme.surface
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
+            }
+        )
     ) {
         Row(
             modifier = Modifier

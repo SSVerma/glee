@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -81,10 +83,10 @@ private fun NoModelBanner(onDownloadClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
         )
     ) {
         Column(
@@ -94,7 +96,6 @@ private fun NoModelBanner(onDownloadClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.CloudOff,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.height(16.dp))
@@ -102,18 +103,16 @@ private fun NoModelBanner(onDownloadClick: () -> Unit) {
                 text = stringResource(Res.string.download_model_banner_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(Res.string.download_model_banner_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                 lineHeight = 20.sp
             )
             Spacer(Modifier.height(20.dp))
-            androidx.compose.material3.Button(
+            Button(
                 onClick = onDownloadClick,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()

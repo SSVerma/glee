@@ -21,6 +21,9 @@ apply(from = "../gradle/web-deploy.gradle.kts")
 // 3. Android Release
 apply(from = "../gradle/android-release.gradle.kts")
 
+// 4. Desktop Release
+apply(from = "../gradle/desktop-release.gradle.kts")
+
 val releaseProperties = Properties().apply {
     val file = rootProject.file("release.properties")
     if (file.exists()) {
@@ -186,7 +189,7 @@ android {
     compileSdk = config.android.compileSdk
 
     defaultConfig {
-        applicationId = config.android.applicationId
+        applicationId = "in.ssverma.glee"
         minSdk = config.android.minSdk
         targetSdk = config.android.targetSdk
         versionCode = config.android.versionCode
@@ -211,9 +214,17 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
+        }
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "src/androidMain/proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("release")
             if (signingConfigs.getByName("release").storeFile?.exists() == true) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -236,29 +247,39 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = config.meta.baseName
+            packageName = config.meta.appName // Use 'appName' which includes -Debug suffix
             packageVersion = config.meta.version
 
             description = config.desktop.description
             copyright = config.desktop.copyright
             vendor = config.desktop.vendor
 
+            buildTypes {
+                release {
+                    proguard {
+                        isEnabled.set(config.desktop.isObfuscationEnabled)
+                        configurationFiles.from("src/jvmMain/proguard-rules.pro")
+                    }
+                }
+            }
+
             macOS {
-                bundleID = config.desktop.mac.bundleId
-                dockName = config.desktop.mac.dockName
+                bundleID = config.android.applicationId // Uses .debug suffix if debug
+                dockName = config.meta.appName
                 if (config.desktop.mac.iconFile.exists()) {
                     iconFile.set(config.desktop.mac.iconFile)
                 }
             }
             windows {
-                menuGroup = config.desktop.win.menuGroup
+                menuGroup = config.meta.appName
                 upgradeUuid = config.desktop.win.upgradeUuid
                 if (config.desktop.win.iconFile.exists()) {
                     iconFile.set(config.desktop.win.iconFile)
                 }
             }
             linux {
-                packageName = config.desktop.linux.packageName
+                packageName =
+                    config.meta.baseName + (if (buildType is BuildType.Debug) ".debug" else "")
                 // maintainer = config.desktop.linux.maintainerEmail
                 if (config.desktop.linux.iconFile.exists()) {
                     iconFile.set(config.desktop.linux.iconFile)

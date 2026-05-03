@@ -43,12 +43,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import glee.shared.generated.resources.Res
+import glee.shared.generated.resources.coming_soon
 import glee.shared.generated.resources.continue_on_web
 import glee.shared.generated.resources.download_android_app
 import glee.shared.generated.resources.get_for_desktop
 import glee.shared.generated.resources.get_glee_app
 import glee.shared.generated.resources.get_on_iphone
+import glee.shared.generated.resources.ios_coming_soon_desc
 import glee.shared.generated.resources.non_signed_warning
+import glee.shared.generated.resources.ok
 import glee.shared.generated.resources.web_performance_warning
 import `in`.ssverma.glee.core.common.platform.OsType
 import `in`.ssverma.glee.core.common.platform.PlatformType
@@ -69,13 +72,13 @@ fun WebPerformanceDialog(
     val urlLauncher: UrlLauncher = koinInject()
     val osType = remember { getOsType() }
     var showNonSignedNote by remember { mutableStateOf(false) }
+    var showComingSoonDialog by remember { mutableStateOf(false) }
 
     val downloadBase = "https://glee-ai.web.app/download"
     val macUrl = "$downloadBase/mac"
     val winUrl = "$downloadBase/windows"
     val linuxUrl = "$downloadBase/linux"
     val playStoreUrl = "https://play.google.com/store/apps/details?id=in.ssverma.glee"
-    val iosUrl = "https://testflight.apple.com/join/placeholder" // TODO: Replace with real link
 
     if (showDialog) {
         AlertDialog(
@@ -182,7 +185,7 @@ fun WebPerformanceDialog(
 
                         // iOS - Outlined
                         OutlinedButton(
-                            onClick = { urlLauncher.launchUrl(iosUrl) },
+                            onClick = { showComingSoonDialog = true },
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(12.dp)
                         ) {
@@ -242,6 +245,19 @@ fun WebPerformanceDialog(
             dismissButton = {
                 TextButton(onClick = onDismissRequest) {
                     Text(stringResource(Res.string.continue_on_web))
+                }
+            }
+        )
+    }
+
+    if (showComingSoonDialog) {
+        AlertDialog(
+            onDismissRequest = { showComingSoonDialog = false },
+            title = { Text(stringResource(Res.string.coming_soon)) },
+            text = { Text(stringResource(Res.string.ios_coming_soon_desc)) },
+            confirmButton = {
+                Button(onClick = { showComingSoonDialog = false }) {
+                    Text(stringResource(Res.string.ok))
                 }
             }
         )

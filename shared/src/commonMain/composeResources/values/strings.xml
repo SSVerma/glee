@@ -52,7 +52,9 @@
     <string name="backend_gpu">GPU (Graphics Processing Unit)</string>
     <string name="backend_cpu">CPU (Central Processing Unit)</string>
     <string name="thinking">Thinking</string>
-    <string name="restore_defaults">Restore Defaults</string>
+    <string name="restore">Restore</string>
+    <string name="restore_defaults">Restore</string>
+    <string name="hardware_accelerator">Hardware Accelerator</string>
     <string name="temperature_info">Controls the randomness of the model's output. Higher values make the output more creative but potentially less coherent.</string>
     <string name="top_k_info">Limits the model's choices to the top K most likely next words. Lower values reduce randomness and help keep the output more focused.</string>
     <string name="use_gpu_info">Enables GPU acceleration for faster inference. May increase battery usage on mobile devices.</string>
@@ -60,6 +62,7 @@
     <string name="agentic_mode_info">Enables Glee to use tools and reasoning steps to solve complex tasks. This may be slower as it involves multiple internal reasoning turns.</string>
     <string name="system_prompt_info">A persistent instruction that guides the model's behavior, personality, and constraints throughout the entire conversation.</string>
     <string name="done">Done</string>
+    <string name="save">Save</string>
     <string name="ai_disclosure">Glee can make mistakes. Consider verifying important information.</string>
     <string name="private_chat">Private Chat</string>
     <string name="incognito_desc">History will not be stored in this session.</string>
@@ -167,13 +170,15 @@
     <string name="low_end_device_warning_desc">Your device has limited resources. Selecting NPU or GPU may cause the app to hang or crash. We recommend using CPU for better stability. Do you want to proceed?</string>
     <string name="proceed_anyway">Proceed Anyway</string>
     <string name="notification_rationale_title">Download Notifications</string>
-    <string name="notification_rationale_desc">We need notification permission to show the download progress in your system tray. This allows the download to continue reliably even if you leave the app. If you deny this, the download will still start, but you won\'t see the progress outside the app and download might not be succeeded.</string>
+    <string name="notification_rationale_desc">We need notification permission to show the download progress in your system tray. This allows the download to continue reliably even if you leave the app. If you deny this, the download will still start, but you won't see the progress outside the app and download might not be succeeded.</string>
     <string name="allow">Allow</string>
     <string name="download_for_mac">Mac</string>
     <string name="download_for_windows">Windows</string>
     <string name="download_for_linux">Linux</string>
-    <string name="get_on_iphone">For iPhone/iPad</string>
+    <string name="get_on_iphone">For iOS</string>
     <string name="get_for_desktop">For Desktop</string>
     <string name="non_signed_warning">Non-signed build</string>
     <string name="other_platforms">Other Platforms</string>
+    <string name="coming_soon">Coming Soon</string>
+    <string name="ios_coming_soon_desc">The iOS app is currently in development.</string>
 </resources>
