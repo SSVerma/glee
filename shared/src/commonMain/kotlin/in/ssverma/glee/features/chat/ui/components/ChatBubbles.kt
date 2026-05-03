@@ -102,10 +102,11 @@ fun MessageBubble(
                                     model = attachment.path,
                                     contentDescription = null,
                                     modifier = Modifier
-                                        .size(100.dp)
+                                        .widthIn(max = 240.dp)
+                                        .heightIn(max = 320.dp)
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(MaterialTheme.colorScheme.surfaceVariant),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Fit
                                 )
                             }
                         }

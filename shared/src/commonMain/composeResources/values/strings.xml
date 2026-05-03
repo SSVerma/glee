@@ -52,7 +52,9 @@
     <string name="backend_gpu">GPU (Graphics Processing Unit)</string>
     <string name="backend_cpu">CPU (Central Processing Unit)</string>
     <string name="thinking">Thinking</string>
-    <string name="restore_defaults">Restore Defaults</string>
+    <string name="restore">Restore</string>
+    <string name="restore_defaults">Restore</string>
+    <string name="hardware_accelerator">Hardware Accelerator</string>
     <string name="temperature_info">Controls the randomness of the model's output. Higher values make the output more creative but potentially less coherent.</string>
     <string name="top_k_info">Limits the model's choices to the top K most likely next words. Lower values reduce randomness and help keep the output more focused.</string>
     <string name="use_gpu_info">Enables GPU acceleration for faster inference. May increase battery usage on mobile devices.</string>
@@ -172,7 +174,7 @@
     <string name="download_for_mac">Mac</string>
     <string name="download_for_windows">Windows</string>
     <string name="download_for_linux">Linux</string>
-    <string name="get_on_iphone">For iPhone/iPad</string>
+    <string name="get_on_iphone">For iOS</string>
     <string name="get_for_desktop">For Desktop</string>
     <string name="non_signed_warning">Non-signed build</string>
     <string name="other_platforms">Other Platforms</string>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,12 +22,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
@@ -47,6 +50,7 @@ import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.backend_auto
 import glee.shared.generated.resources.cancel
 import glee.shared.generated.resources.done
+import glee.shared.generated.resources.hardware_accelerator
 import glee.shared.generated.resources.intelligence
 import glee.shared.generated.resources.low_end_device_warning_desc
 import glee.shared.generated.resources.low_end_device_warning_title
@@ -54,7 +58,7 @@ import glee.shared.generated.resources.model_backend
 import glee.shared.generated.resources.model_backend_info
 import glee.shared.generated.resources.model_config
 import glee.shared.generated.resources.proceed_anyway
-import glee.shared.generated.resources.restore_defaults
+import glee.shared.generated.resources.restore
 import glee.shared.generated.resources.system_prompt
 import glee.shared.generated.resources.system_prompt_info
 import glee.shared.generated.resources.temperature
@@ -80,7 +84,7 @@ fun GleeIntelligenceSheet(
     modifier: Modifier = Modifier,
 ) {
     var pendingBackend by remember { mutableStateOf<BackendType?>(null) }
-    var infoTitle by remember { mutableStateOf<String?>(null) }
+    var infoTitle by remember { mutableStateOf<StringResource?>(null) }
     var infoText by remember { mutableStateOf<StringResource?>(null) }
 
     Box(modifier = modifier.fillMaxWidth()) {
@@ -116,7 +120,7 @@ fun GleeIntelligenceSheet(
                 title = stringResource(Res.string.system_prompt),
                 onRestore = onRestoreDefaultPrompt,
                 onInfoClick = {
-                    infoTitle = "System Prompt"
+                    infoTitle = Res.string.system_prompt
                     infoText = Res.string.system_prompt_info
                 }
             ) {
@@ -146,7 +150,7 @@ fun GleeIntelligenceSheet(
                     range = 0f..1.5f,
                     onValueChange = { onConfigChange(config.copy(temperature = it)) },
                     onInfoClick = {
-                        infoTitle = "Temperature"
+                        infoTitle = Res.string.temperature
                         infoText = Res.string.temperature_info
                     }
                 )
@@ -157,7 +161,7 @@ fun GleeIntelligenceSheet(
                     range = 1f..100f,
                     onValueChange = { onConfigChange(config.copy(topK = it.toInt())) },
                     onInfoClick = {
-                        infoTitle = "Top-K"
+                        infoTitle = Res.string.top_k
                         infoText = Res.string.top_k_info
                     }
                 )
@@ -165,7 +169,7 @@ fun GleeIntelligenceSheet(
                 SheetSection(
                     title = stringResource(Res.string.model_backend),
                     onInfoClick = {
-                        infoTitle = "Hardware Accelerator"
+                        infoTitle = Res.string.hardware_accelerator
                         infoText = Res.string.model_backend_info
                     }
                 ) {
@@ -251,7 +255,7 @@ fun GleeIntelligenceSheet(
                     infoTitle = null
                     infoText = null
                 },
-                title = { Text(infoTitle!!) },
+                title = { Text(stringResource(infoTitle!!)) },
                 text = { Text(stringResource(infoText!!)) },
                 confirmButton = {
                     TextButton(onClick = {
@@ -323,14 +327,16 @@ private fun SheetSection(
                 }
             }
             if (onRestore != null) {
-                TextButton(
+                OutlinedButton(
                     onClick = onRestore,
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(32.dp),
+                    border = ButtonDefaults.outlinedButtonBorder(true).copy(width = 0.5.dp)
                 ) {
                     Text(
-                        text = stringResource(Res.string.restore_defaults),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
+                        text = stringResource(Res.string.restore),
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }

@@ -259,6 +259,7 @@ fun ChatScreen(
                     onModelSelectionClick = { showModelSelectionSheet = true },
                     onModelManagement = onModelManagement,
                     isWide = isWide,
+                    isMedium = isMedium,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -317,6 +318,7 @@ fun ChatScreen(
                                         },
                                         onSave = {
                                             settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
+                                            currentActionSheet = ChatActionSheetType.Root
                                         },
                                         onBack = { currentActionSheet = ChatActionSheetType.Root },
                                         isLowConstraintDevice = uiState.isLowConstraintDevice
@@ -356,12 +358,14 @@ fun ChatScreen(
     }
 
     if (showActionSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
         ModalBottomSheet(
             onDismissRequest = {
                 showActionSheet = false
                 currentActionSheet = ChatActionSheetType.Root
             },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = sheetState
         ) {
             Box(modifier = Modifier.fillMaxWidth().animateContentSize()) {
                 when (currentActionSheet) {
@@ -385,23 +389,16 @@ fun ChatScreen(
                             config = settingsState.modelConfig,
                             systemPrompt = settingsState.systemPrompt,
                             onConfigChange = {
-                                settingsViewModel.onIntent(
-                                    SettingsIntent.UpdateModelConfig(
-                                        it
-                                    )
-                                )
+                                settingsViewModel.onIntent(SettingsIntent.UpdateModelConfig(it))
                             },
                             onUpdateSystemPrompt = {
-                                settingsViewModel.onIntent(
-                                    SettingsIntent.UpdateSystemPrompt(
-                                        it
-                                    )
-                                )
+                                settingsViewModel.onIntent(SettingsIntent.UpdateSystemPrompt(it))
                             },
                             onRestoreDefaultPrompt = { settingsViewModel.onIntent(SettingsIntent.RestoreDefaultSystemPrompt) },
                             onSave = {
                                 settingsViewModel.onIntent(SettingsIntent.SaveIntelligenceConfig)
                                 showActionSheet = false
+                                currentActionSheet = ChatActionSheetType.Root
                             },
                             onBack = { currentActionSheet = ChatActionSheetType.Root },
                             isLowConstraintDevice = uiState.isLowConstraintDevice
@@ -420,10 +417,7 @@ fun ChatScreen(
                             activeSkills = manageSkillsState.activeSkills,
                             onToggleSkill = { id, enabled ->
                                 manageToolsViewModel.onIntent(
-                                    ManageSkillsIntent.ToggleSkill(
-                                        id,
-                                        enabled
-                                    )
+                                    ManageSkillsIntent.ToggleSkill(id, enabled)
                                 )
                             },
                             onManageSkills = {
@@ -540,6 +534,7 @@ fun ChatContent(
     onModelSelectionClick: () -> Unit,
     onModelManagement: () -> Unit,
     isWide: Boolean,
+    isMedium: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -604,6 +599,7 @@ fun ChatContent(
                     onToggleVoiceRecording = onToggleVoiceRecording,
                     onInspectorClick = onInspectorClick,
                     onModelSelectionClick = onModelSelectionClick,
+                    showInspectorButton = !isWide && !isMedium,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

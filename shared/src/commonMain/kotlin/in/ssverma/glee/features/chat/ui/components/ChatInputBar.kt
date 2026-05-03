@@ -87,6 +87,7 @@ fun ChatInputBar(
     onToggleVoiceRecording: () -> Unit,
     onInspectorClick: () -> Unit,
     onModelSelectionClick: () -> Unit,
+    showInspectorButton: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var isInputExpanded by remember { mutableStateOf(value = false) }
@@ -210,8 +211,10 @@ fun ChatInputBar(
                     ) {
                         Icon(Icons.Default.Add, stringResource(Res.string.attach))
                     }
-                    IconButton(onClick = onInspectorClick) {
-                        Icon(Icons.Default.Tune, stringResource(Res.string.tools))
+                    if (showInspectorButton) {
+                        IconButton(onClick = onInspectorClick) {
+                            Icon(Icons.Default.Tune, stringResource(Res.string.tools))
+                        }
                     }
 
                     Spacer(Modifier.weight(1f))

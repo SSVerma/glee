@@ -13,9 +13,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -31,11 +36,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Speed
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.context_window
 import glee.shared.generated.resources.context_window_value
@@ -52,7 +52,7 @@ import org.jetbrains.compose.resources.stringResource
 fun GleePerformanceSheet(
     metrics: ChatMetrics,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
@@ -121,6 +121,8 @@ fun GleePerformanceSheet(
                     progress = metrics.contextUsed.toFloat() / metrics.contextMax,
                     color = MaterialTheme.colorScheme.primary
                 )
+
+                HorizontalDivider()
 
                 PerformanceMetricItem(
                     label = stringResource(Res.string.ram_usage),
@@ -204,9 +206,9 @@ private fun PerformanceMetricItem(
         }
         LinearProgressIndicator(
             progress = { progress.coerceIn(0f, 1f) },
-            modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
+            modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
             color = color,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            trackColor = color.copy(alpha = 0.1f),
             strokeCap = StrokeCap.Round
         )
     }
