@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -123,7 +122,6 @@ fun ModelManagementScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(resource = Res.string.model_management)) },
-                modifier = Modifier.statusBarsPadding(),
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)

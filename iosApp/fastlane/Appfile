@@ -1,0 +1,6 @@
+app_identifier("in.ssverma.glee") # The bundle identifier of your app
+# apple_id("user@example.com") # Your Apple ID
+
+# For Firebase App Distribution, you might not need the team_id if you are just building locally,
+# but it's good to have it ready for CI/CD.
+# team_id("YOUR_TEAM_ID")

@@ -4,37 +4,34 @@ import `in`.ssverma.glee.features.chat.domain.model.AiTool
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emptyFlow
 
 actual class LiteRtEngine actual constructor() : AiEngine {
+
     actual override suspend fun loadModel(config: ModelConfig): Result<Unit> {
-        return Result.success(Unit)
+        return Result.failure(Exception("iOS inference is not supported yet."))
     }
 
     actual override fun generateResponse(
         prompt: String,
         files: List<AttachedFile>
-    ): Flow<AiChunk> {
-        return flow {
-            emit(AiChunk("iOS LiteRT implementation coming soon...", isFinal = true))
-        }
-    }
+    ): Flow<AiChunk> = emptyFlow()
 
     actual override fun setSystemPrompt(prompt: String) {
-        // Implementation
+        // No-op for iOS
     }
 
     actual override fun setSkills(skills: List<AiTool>) {
-        // bridge logic
+        // No-op for iOS
     }
 
     actual override suspend fun clearConversation() {
-        // Implementation
+        // No-op for iOS
     }
 
-    override val isLowConstraintDevice: Boolean = false
+    actual override val isLowConstraintDevice: Boolean = false
 
     actual override suspend fun close() {
-        // Release resources
+        // No-op for iOS
     }
 }

@@ -1,0 +1,23 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new beta build to Firebase App Distribution"
+  lane :distribute do
+    # 1. Build the app (ipa)
+    # This automatically handles the xcodebuild command
+    gym(
+      scheme: "iosApp",
+      project: "iosApp.xcodeproj",
+      export_method: "development",
+      output_directory: "./build",
+      output_name: "Glee.ipa"
+    )
+
+    # 2. Upload to Firebase App Distribution
+    firebase_app_distribution(
+      app: "1:1:1038937467685:ios:5689029758a3b4970b88cc",
+      groups: "testers",
+      release_notes: "Automated distribution via Fastlane"
+    )
+  end
+end
