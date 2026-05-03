@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,9 +62,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import glee.shared.generated.resources.Res
-import glee.shared.generated.resources.app_name
 import glee.shared.generated.resources.cancel
 import glee.shared.generated.resources.copied_to_clipboard
 import glee.shared.generated.resources.delete
@@ -108,8 +109,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 expect fun rememberPermissionLauncher(
-    permissionType: PermissionType,
-    onResult: (Boolean) -> Unit
+    permissionType: PermissionType, onResult: (Boolean) -> Unit
 ): () -> Unit
 
 @Composable
@@ -478,25 +478,6 @@ fun ChatScreen(
         }
     }
 
-    if (uiState.showDownloadDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onIntent(ChatIntent.SetShowDownloadDialog(false)) },
-            confirmButton = {
-                Button(onClick = { viewModel.onIntent(ChatIntent.SetShowDownloadDialog(false)) }) {
-                    Text(stringResource(Res.string.done))
-                }
-            },
-            title = { Text(stringResource(Res.string.app_name)) },
-            text = {
-                Column {
-                    Text("Download Glee for your device for better performance.")
-                    Spacer(Modifier.height(16.dp))
-                    Text("Currently available for Android, Windows, and macOS.")
-                }
-            }
-        )
-    }
-
     uiState.conversationToDelete?.let {
         AlertDialog(
             onDismissRequest = { viewModel.onIntent(ChatIntent.CancelDeleteConversation) },
@@ -707,26 +688,28 @@ fun ChatContent(
 }
 
 @Composable
-fun InitializingInfoBar() {
+private fun InitializingInfoBar() {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator(
                 modifier = Modifier.size(16.dp),
-                strokeWidth = 2.dp
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.secondary
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(12.dp))
             Text(
                 text = stringResource(Res.string.initializing_model_banner),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
     }

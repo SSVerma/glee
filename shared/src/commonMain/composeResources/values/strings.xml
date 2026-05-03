@@ -170,7 +170,7 @@
     <string name="low_end_device_warning_desc">Your device has limited resources. Selecting NPU or GPU may cause the app to hang or crash. We recommend using CPU for better stability. Do you want to proceed?</string>
     <string name="proceed_anyway">Proceed Anyway</string>
     <string name="notification_rationale_title">Download Notifications</string>
-    <string name="notification_rationale_desc">We need notification permission to show the download progress in your system tray. This allows the download to continue reliably even if you leave the app. If you deny this, the download will still start, but you won\'t see the progress outside the app and download might not be succeeded.</string>
+    <string name="notification_rationale_desc">We need notification permission to show the download progress in your system tray. This allows the download to continue reliably even if you leave the app. If you deny this, the download will still start, but you won't see the progress outside the app and download might not be succeeded.</string>
     <string name="allow">Allow</string>
     <string name="download_for_mac">Mac</string>
     <string name="download_for_windows">Windows</string>
@@ -179,4 +179,6 @@
     <string name="get_for_desktop">For Desktop</string>
     <string name="non_signed_warning">Non-signed build</string>
     <string name="other_platforms">Other Platforms</string>
+    <string name="coming_soon">Coming Soon</string>
+    <string name="ios_coming_soon_desc">The iOS app is currently in development.</string>
 </resources>
