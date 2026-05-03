@@ -78,6 +78,7 @@ import glee.shared.generated.resources.dont_show_again
 import glee.shared.generated.resources.incognito_desc
 import glee.shared.generated.resources.incognito_info_title
 import glee.shared.generated.resources.initializing_model_banner
+import `in`.ssverma.glee.core.common.platform.PermissionType
 import `in`.ssverma.glee.core.ui.components.GleeSidebar
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ChatMetrics
@@ -108,8 +109,6 @@ import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-
-import `in`.ssverma.glee.core.common.platform.PermissionType
 
 // For permission handling
 @Composable
@@ -263,7 +262,7 @@ fun ChatScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                if (isWide || isMedium) {
+                if (isWide) {
                     VerticalDivider(
                         thickness = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant
@@ -549,7 +548,7 @@ fun ChatContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             ChatTopBar(
-                showMenuIcon = !isWide && anyModelDownloaded,
+                showMenuIcon = !isWide,
                 isPrivateMode = isPrivateMode,
                 onMenuClick = onMenuClick,
                 onTogglePrivate = { onIntent(ChatIntent.TogglePrivateMode) },

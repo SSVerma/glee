@@ -18,9 +18,10 @@ val generateGleeConfig = tasks.register("generateGleeConfig") {
         project.hasProperty("buildType") && project.property("buildType") == "release" ||
                 gradle.startParameter.taskNames.any { task ->
                     val lowerTask = task.lowercase()
-                    lowerTask.contains("release") || lowerTask.contains("publish") || lowerTask.contains(
-                        "deploy"
-                    )
+                    lowerTask.contains("release") ||
+                            lowerTask.contains("publish") ||
+                            lowerTask.contains("deploy") ||
+                            lowerTask.contains("bundle")
                 }
 
     val buildType = if (isRelease) BuildType.Release else BuildType.Debug
