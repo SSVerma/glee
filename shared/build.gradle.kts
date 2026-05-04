@@ -257,8 +257,7 @@ compose.desktop {
             buildTypes {
                 release {
                     proguard {
-                        isEnabled.set(config.desktop.isObfuscationEnabled)
-                        configurationFiles.from("src/jvmMain/proguard-rules.pro")
+                        isEnabled.set(false)
                     }
                 }
             }
