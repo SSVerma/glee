@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Loop
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -168,8 +169,8 @@ private fun ActionMenuItem(
         onClick = onClick,
         enabled = enabled,
         shape = MaterialTheme.shapes.extraLarge,
-        modifier = Modifier.background(
-            color = if (enabled) {
+        colors = CardDefaults.cardColors(
+            containerColor = if (enabled) {
                 MaterialTheme.colorScheme.surface
             } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)

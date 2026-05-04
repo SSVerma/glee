@@ -129,7 +129,7 @@ object ProjectConfig {
                 description = "Glee - An open source AI assistant",
                 copyright = "© 2026 ssverma",
                 vendor = "in.ssverma",
-                isObfuscationEnabled = buildType is BuildType.Release,
+                isObfuscationEnabled = false,
                 mac = DesktopMac(
                     bundleId = applicationId,
                     dockName = appName,
