@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.default_system_prompt
+import `in`.ssverma.glee.core.common.platform.PlatformType
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
 import `in`.ssverma.glee.core.common.platform.SystemMetrics
+import `in`.ssverma.glee.core.common.platform.getPlatformType
 import `in`.ssverma.glee.core.common.platform.toCoilPath
 import `in`.ssverma.glee.core.preferences.GleeSettings
 import `in`.ssverma.glee.domain.AiEngine
@@ -70,6 +72,11 @@ class ChatViewModel(
         refreshSuggestions()
 
         _uiState.update { it.copy(isSpeechRecognitionSupported = speechRecognizerManager.isSupported) }
+
+        val platform = getPlatformType()
+        if (platform == PlatformType.WasmJs || platform == PlatformType.Js) {
+            _uiState.update { it.copy(showDownloadDialog = true) }
+        }
 
         viewModelScope.launch {
             while (true) {
