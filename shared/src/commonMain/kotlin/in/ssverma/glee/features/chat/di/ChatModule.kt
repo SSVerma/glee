@@ -41,7 +41,8 @@ val chatModule = module {
     single {
         SettingsViewModel(
             settings = get(),
-            chatManager = get()
+            chatManager = get(),
+            modelRepository = get()
         )
     }
 

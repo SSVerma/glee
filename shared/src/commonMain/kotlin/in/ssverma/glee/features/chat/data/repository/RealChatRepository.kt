@@ -36,6 +36,11 @@ class RealChatRepository(
         db.chatDao().insertMessage(message.toEntity(conversationId))
     }
 
+    override suspend fun clearAllData() {
+        db.chatDao().clearConversations()
+        db.chatDao().clearMessages()
+    }
+
     private fun ConversationEntity.toDomain() = Conversation(
         id = id,
         title = title,

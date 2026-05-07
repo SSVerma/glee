@@ -14,10 +14,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ModelTraining
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +29,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,6 +44,11 @@ import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.about
 import glee.shared.generated.resources.adaptive_colors
 import glee.shared.generated.resources.appearance
+import glee.shared.generated.resources.cancel
+import glee.shared.generated.resources.clear_all_data
+import glee.shared.generated.resources.clear_all_data_confirm
+import glee.shared.generated.resources.clear_all_data_desc
+import glee.shared.generated.resources.clear_all_data_title
 import glee.shared.generated.resources.dark
 import glee.shared.generated.resources.light
 import glee.shared.generated.resources.manage_tools
@@ -49,6 +57,7 @@ import glee.shared.generated.resources.model_and_intelligence
 import glee.shared.generated.resources.model_management
 import glee.shared.generated.resources.model_management_desc
 import glee.shared.generated.resources.settings
+import glee.shared.generated.resources.storage_and_privacy
 import glee.shared.generated.resources.system_default
 import glee.shared.generated.resources.theme
 import glee.shared.generated.resources.version
@@ -70,6 +79,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showThemeSheet by remember { mutableStateOf(false) }
+    var showClearDataDialog by remember { mutableStateOf(false) }
     val platformType = remember { getPlatformType() }
 
     Scaffold(
@@ -129,6 +139,17 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsHeader(stringResource(Res.string.storage_and_privacy))
+                SettingsClickItem(
+                    title = stringResource(Res.string.clear_all_data),
+                    subtitle = stringResource(Res.string.clear_all_data_desc),
+                    icon = Icons.Default.DeleteForever,
+                    showChevron = false,
+                    onClick = { showClearDataDialog = true }
+                )
+            }
+
+            item {
                 SettingsHeader(stringResource(Res.string.about))
                 SettingsClickItem(
                     title = stringResource(Res.string.version),
@@ -154,6 +175,32 @@ fun SettingsScreen(
                     showThemeSheet = false
                 },
                 onDismiss = { showThemeSheet = false }
+            )
+        }
+
+        if (showClearDataDialog) {
+            AlertDialog(
+                onDismissRequest = { showClearDataDialog = false },
+                title = { Text(stringResource(Res.string.clear_all_data_title)) },
+                text = { Text(stringResource(Res.string.clear_all_data_desc)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.onIntent(SettingsIntent.ClearAllData)
+                            showClearDataDialog = false
+                        }
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.clear_all_data_confirm),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearDataDialog = false }) {
+                        Text(stringResource(Res.string.cancel))
+                    }
+                }
             )
         }
     }

@@ -15,6 +15,7 @@ import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -276,10 +277,14 @@ class ModelManagementViewModel(
 
     private fun deleteModel(model: ModelInfo) {
         viewModelScope.launch {
-            modelRepository.deleteModel(model)
+            // 1. Deselect first to trigger ChatViewModel engine close
             if (settings.selectedModelId.first() == model.id) {
                 settings.setSelectedModelId(null)
+                // Small delay to allow ChatViewModel to react and close the engine handle
+                delay(100)
             }
+            // 2. Actually delete the file
+            modelRepository.deleteModel(model)
             initializeModels()
         }
     }

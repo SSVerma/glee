@@ -215,4 +215,22 @@ class AiModelRepository(
     fun notifyModelsChanged() {
         _modelsChanged.value = currentTimeMillis()
     }
+
+    suspend fun deleteAllModels() {
+        // Delete custom models list
+        customModelsList.clear()
+        saveCustomModels()
+
+        // Delete all files in appDataDir
+        fileSystem.listFiles(appDataDir).onSuccess { paths ->
+            paths.forEach { path ->
+                // Only delete model files and custom models json
+                val name = path.name
+                if (name.endsWith(".litertlm") || name == "custom_models.json") {
+                    fileSystem.delete(path)
+                }
+            }
+        }
+        _modelsChanged.value = currentTimeMillis()
+    }
 }

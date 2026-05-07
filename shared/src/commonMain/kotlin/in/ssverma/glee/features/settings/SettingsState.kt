@@ -23,4 +23,5 @@ sealed interface SettingsIntent {
     data object RestoreDefaultSystemPrompt : SettingsIntent
     data object ToggleSystemPromptEditor : SettingsIntent
     data class SetShowIncognitoInfo(val show: Boolean) : SettingsIntent
+    data object ClearAllData : SettingsIntent
 }

@@ -31,15 +31,14 @@ actual class LiteRtEngine actual constructor() : AiEngine {
                 val engineConfig = EngineConfig(
                     modelPath = config.modelPath,
                     backend = Backend.CPU(),
-                    visionBackend = if (config.maxNumImages > 0) Backend.CPU() else null,
-                    maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
+                    visionBackend = null,
+                    maxNumImages = null
                 )
                 val newEngine = Engine(engineConfig)
                 newEngine.initialize()
                 engine = newEngine
 
                 conversation = newEngine.createConversation()
-                Unit
             }
         }
     }
