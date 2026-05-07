@@ -163,7 +163,7 @@
     <string name="web_performance_warning">The web version might be slow due to WebGPU limitations. For the best experience, download our native apps.</string>
     <string name="download_for_desktop">For Desktop</string>
     <string name="download_android_app">Download Android App</string>
-    <string name="continue_on_web">Continue on Web</string>
+    <string name="continue_on_web">Disappoint me (Continue on Web)</string>
     <string name="github_repo">GitHub Repository</string>
     <string name="open_source_desc">Glee is fully open source. Star us on GitHub!</string>
     <string name="low_end_device_warning_title">Performance Warning</string>

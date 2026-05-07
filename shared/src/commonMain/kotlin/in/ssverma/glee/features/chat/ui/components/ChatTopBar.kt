@@ -1,14 +1,13 @@
 package `in`.ssverma.glee.features.chat.ui.components
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -16,19 +15,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import `in`.ssverma.glee.core.common.platform.getPlatformType
-import `in`.ssverma.glee.core.common.platform.PlatformType
-import `in`.ssverma.glee.features.chat.domain.model.ChatMetrics
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.app_name
+import `in`.ssverma.glee.core.common.platform.PlatformType
+import `in`.ssverma.glee.core.common.platform.getPlatformType
+import `in`.ssverma.glee.features.chat.domain.model.ChatMetrics
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,7 +61,10 @@ fun ChatTopBar(
                         onClick = {},
                         label = {
                             val latencySec = metrics.latencyMs / 1000f
-                            val latencyText = if (latencySec < 0.1f) "<0.1s" else "${latencySec.toString().take(3)}s"
+                            val latencyText = if (latencySec < 0.1f) "<0.1s" else "${
+                                latencySec.toString().take(3)
+                            }s"
+
                             Text(
                                 text = "${metrics.ramUsedGb.toString().take(3)}GB | $latencyText",
                                 fontSize = 10.sp
@@ -85,12 +87,12 @@ fun ChatTopBar(
             }
         },
         actions = {
-            if (actionsEnabled) {
-                if (isWeb) {
-                    IconButton(onClick = onDownloadAppsClick) {
-                        Icon(Icons.Default.Download, null)
-                    }
+            if (isWeb) {
+                IconButton(onClick = onDownloadAppsClick) {
+                    Icon(Icons.Default.Download, null)
                 }
+            }
+            if (actionsEnabled) {
                 IconButton(onClick = onNewChat) {
                     Icon(Icons.Default.Add, null)
                 }
@@ -98,7 +100,8 @@ fun ChatTopBar(
                     Icon(
                         imageVector = Icons.Default.Shield,
                         contentDescription = null,
-                        tint = if (isPrivateMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        tint = if (isPrivateMode) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
