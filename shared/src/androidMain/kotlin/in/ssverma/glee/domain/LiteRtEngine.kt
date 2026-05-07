@@ -120,8 +120,8 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
             val npuConfig = EngineConfig(
                 modelPath = config.modelPath,
                 backend = npuBackend,
-                visionBackend = null,
-                maxNumImages = null
+                visionBackend = if (config.maxNumImages > 0) npuBackend else null,
+                maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
             )
             val engine = Engine(npuConfig)
             engine.initialize()
@@ -140,8 +140,8 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
             val gpuConfig = EngineConfig(
                 modelPath = config.modelPath,
                 backend = gpuBackend,
-                visionBackend = null,
-                maxNumImages = null
+                visionBackend = if (config.maxNumImages > 0) gpuBackend else null,
+                maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
             )
             val e = Engine(gpuConfig)
             e.initialize()
@@ -160,8 +160,8 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
         val cpuConfig = EngineConfig(
             modelPath = modelPath,
             backend = Backend.CPU(numOfThreads = optimalThreads),
-            visionBackend = null,
-            maxNumImages = null
+            visionBackend = if (maxNumImages > 0) Backend.CPU() else null,
+            maxNumImages = if (maxNumImages > 0) maxNumImages else null
         )
         val e = Engine(cpuConfig)
         e.initialize()

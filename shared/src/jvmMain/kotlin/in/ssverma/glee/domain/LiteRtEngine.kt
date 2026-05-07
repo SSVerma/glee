@@ -31,8 +31,8 @@ actual class LiteRtEngine actual constructor() : AiEngine {
                 val engineConfig = EngineConfig(
                     modelPath = config.modelPath,
                     backend = Backend.CPU(),
-                    visionBackend = null,
-                    maxNumImages = null
+                    visionBackend = if (config.maxNumImages > 0) Backend.CPU() else null,
+                    maxNumImages = if (config.maxNumImages > 0) config.maxNumImages else null
                 )
                 val newEngine = Engine(engineConfig)
                 newEngine.initialize()
@@ -50,7 +50,8 @@ actual class LiteRtEngine actual constructor() : AiEngine {
         mutex.withLock {
             val conv = conversation ?: throw IllegalStateException("Model not loaded")
 
-            val cleanPrompt = prompt.trim()
+            val cleanPrompt = prompt.trim().ifBlank { "Describe the image" }
+
             // Optimization: Only send system prompt on the first turn of a conversation.
             val formattedPrompt = buildString {
                 if (systemPrompt.isNotEmpty() && !isSystemPromptSent) {
@@ -73,6 +74,7 @@ actual class LiteRtEngine actual constructor() : AiEngine {
             if (imageContents.isNotEmpty()) {
                 imageContents.add(Content.Text(formattedPrompt))
                 val contents = Contents.of(imageContents)
+
                 conv.sendMessageAsync(contents).collect { message ->
                     val text = message.contents.contents
                         .filterIsInstance<Content.Text>()
