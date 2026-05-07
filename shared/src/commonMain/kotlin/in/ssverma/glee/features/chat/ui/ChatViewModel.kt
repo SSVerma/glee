@@ -4,12 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.default_system_prompt
-import glee.shared.generated.resources.describe_image
-import `in`.ssverma.glee.core.common.currentTimeMillis
-import `in`.ssverma.glee.core.common.platform.PlatformType
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
-import `in`.ssverma.glee.core.common.platform.getPlatformType
-import `in`.ssverma.glee.core.common.platform.getSystemMetrics
+import `in`.ssverma.glee.core.common.platform.SystemMetrics
 import `in`.ssverma.glee.core.common.platform.toCoilPath
 import `in`.ssverma.glee.core.preferences.GleeSettings
 import `in`.ssverma.glee.domain.AiEngine
@@ -23,13 +19,13 @@ import `in`.ssverma.glee.features.chat.domain.model.ModelConfig
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
 import `in`.ssverma.glee.features.chat.domain.usecase.AiChatManager
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
@@ -37,19 +33,24 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.Path
 import org.jetbrains.compose.resources.getString
+import kotlin.coroutines.cancellation.CancellationException
 
 class ChatViewModel(
     private val chatManager: AiChatManager,
-    skills: List<AiTool>,
+    private val skills: List<AiTool>,
     private val engine: AiEngine,
     private val settings: GleeSettings,
     private val appDataDir: Path,
     private val speechRecognizerManager: SpeechRecognizerManager,
     private val modelRepository: AiModelRepository,
-    private val suggestionProvider: ChatSuggestionProvider,
+    private val suggestionProvider: ChatSuggestionProvider
 ) : ViewModel() {
 
-    private val systemMetrics = getSystemMetrics()
+    private val systemMetrics = object : SystemMetrics {
+        override fun getUsedRamGb(): Float = 0f
+        override fun getTotalRamGb(): Float = 0f
+    }
+
     private val _uiState = MutableStateFlow(ChatState())
     val uiState: StateFlow<ChatState> = _uiState.asStateFlow()
 
@@ -63,16 +64,13 @@ class ChatViewModel(
     private var isAgentic: Boolean = false
 
     init {
-        _uiState.update {
-            it.copy(
-                isSpeechRecognitionSupported = speechRecognizerManager.isSupported,
-                showDownloadDialog = (getPlatformType() == PlatformType.WasmJs) || (getPlatformType() == PlatformType.Js),
-                isLowConstraintDevice = engine.isLowConstraintDevice
-            )
-        }
+        observeChatManager()
+        observeSettings()
+        observeSelectedModel()
+        refreshSuggestions()
 
-        skills.forEach { chatManager.registerSkill(it) }
-        
+        _uiState.update { it.copy(isSpeechRecognitionSupported = speechRecognizerManager.isSupported) }
+
         viewModelScope.launch {
             while (true) {
                 updateMetrics()
@@ -80,15 +78,8 @@ class ChatViewModel(
             }
         }
 
-        observeChatManager()
-        observeSettings()
-        observeSelectedModel()
-        
-        viewModelScope.launch {
-            chatManager.loadConversations()
-        }
-
-        refreshSuggestions()
+        // Skills registration
+        skills.forEach { chatManager.registerSkill(it) }
     }
 
     private fun observeChatManager() {
@@ -98,8 +89,8 @@ class ChatViewModel(
             }
         }
         viewModelScope.launch {
-            chatManager.conversations.collect { conversations ->
-                _uiState.update { it.copy(conversations = conversations) }
+            chatManager.conversations.collect { list ->
+                _uiState.update { it.copy(conversations = list) }
             }
         }
     }
@@ -135,14 +126,15 @@ class ChatViewModel(
                 currentSystemPrompt = systemPrompt ?: defaultPrompt
                 currentTemperature = temp
                 currentTopK = topK
-                
-                val preferredBackend = runCatching { BackendType.valueOf(backend) }.getOrDefault(BackendType.Auto)
+
+                val preferredBackend =
+                    runCatching { BackendType.valueOf(backend) }.getOrDefault(BackendType.Auto)
                 val backendChanged = currentBackend != preferredBackend
                 currentBackend = preferredBackend
                 isAgentic = agentic
-                
+
                 chatManager.updateSystemPrompt(currentSystemPrompt)
-                
+
                 if (backendChanged) {
                     _uiState.value.selectedModel?.let { model ->
                         if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
@@ -161,13 +153,38 @@ class ChatViewModel(
                 modelRepository.modelsChanged
             ) { id, _ ->
                 val models = modelRepository.getModelsWithStatus()
-                val model = models.find { it.id == id } ?: return@combine
+                val model = models.find { it.id == id }
 
-                if (model.downloadStatus == ModelDownloadStatus.Downloaded) {
-                    _uiState.update { it.copy(selectedModel = model) }
+                // 1. If an ID is set but the model is missing (deleted), clear the setting
+                if (id != null && model == null) {
+                    settings.setSelectedModelId(null)
+                    return@combine
+                }
+
+                // 2. Auto-select first available if none selected and NO ID is present
+                if (model == null && id == null) {
+                    val firstAvailable =
+                        models.find { it.downloadStatus == ModelDownloadStatus.Downloaded }
+                    if (firstAvailable != null) {
+                        settings.setSelectedModelId(firstAvailable.id)
+                        return@combine
+                    }
+                }
+
+                // 3. Handle model loading or engine cleanup
+                if (model != null && model.downloadStatus == ModelDownloadStatus.Downloaded) {
+                    _uiState.update { it.copy(selectedModel = model, loadError = null) }
                     loadModel(model)
                 } else {
-                    _uiState.update { it.copy(selectedModel = model, isModelReady = false) }
+                    _uiState.update {
+                        it.copy(
+                            selectedModel = model,
+                            isModelReady = false,
+                            loadError = if (id != null && model == null) "Selected model not found" else null
+                        )
+                    }
+                    // Explicitly close engine to free RAM and release file handles
+                    engine.close()
                 }
             }.collect {}
         }
@@ -181,37 +198,55 @@ class ChatViewModel(
     }
 
     private suspend fun loadModel(model: ModelInfo) {
-        val path = appDataDir.resolve("${model.id}.litertlm")
+        val extension = if (model.isCustom) model.url else ".litertlm"
+        val fileName = "${model.id}$extension"
+        val path = appDataDir.resolve(fileName)
+
         _uiState.update { it.copy(isInitializing = true, isModelReady = false, loadError = null) }
 
-        val result = withContext(Dispatchers.Default) {
-            engine.loadModel(
-                ModelConfig(
-                    modelPath = path.toString(),
-                    temperature = currentTemperature,
-                    topK = currentTopK,
-                    preferredBackend = currentBackend,
-                    maxNumImages = if (model.supportsVision) 1 else 0
-                )
-            )
-        }
-        if (result.isSuccess) {
-            _uiState.update {
-                it.copy(
-                    isInitializing = false,
-                    isModelReady = true,
-                    metrics = it.metrics.copy(modelName = model.name)
+        try {
+            val result = withContext(Dispatchers.Default) {
+                engine.loadModel(
+                    ModelConfig(
+                        modelPath = path.toString(),
+                        temperature = currentTemperature,
+                        topK = currentTopK,
+                        preferredBackend = currentBackend,
+                        maxNumImages = if (model.supportsVision) 1 else 0
+                    )
                 )
             }
-            delay(1000)
-            _uiState.update { it.copy(streamingContent = "") }
-        } else {
-            val error = result.exceptionOrNull()
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isInitializing = false,
+                        isModelReady = true,
+                        metrics = it.metrics.copy(modelName = model.name)
+                    )
+                }
+                delay(1000)
+                _uiState.update { it.copy(streamingContent = "") }
+            } else {
+                val error = result.exceptionOrNull()
+                println("[Glee] Failed to load model: ${error?.message}")
+                error?.printStackTrace()
+                _uiState.update {
+                    it.copy(
+                        isInitializing = false,
+                        isModelReady = false,
+                        loadError = error?.message ?: "Unknown error while loading model"
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            println("[Glee] Exception during loadModel: ${e.message}")
+            e.printStackTrace()
             _uiState.update {
                 it.copy(
                     isInitializing = false,
                     isModelReady = false,
-                    loadError = error?.message ?: "Unknown error while loading model"
+                    loadError = e.message ?: "Unknown error"
                 )
             }
         }
@@ -226,7 +261,8 @@ class ChatViewModel(
                 metrics = state.metrics.copy(
                     ramUsedGb = if (state.isModelReady) systemMetrics.getUsedRamGb() else 0f,
                     ramTotalGb = systemMetrics.getTotalRamGb(),
-                    contextUsed = historyTokens + systemTokens
+                    contextUsed = historyTokens + systemTokens,
+                    contextMax = 128000
                 )
             )
         }
@@ -256,11 +292,11 @@ class ChatViewModel(
 
             is ChatIntent.StartConversation -> {
                 stopStreaming()
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isPrivateMode = false,
                         currentConversationId = intent.conversation.id
-                    ) 
+                    )
                 }
                 viewModelScope.launch {
                     chatManager.startConversation(intent.conversation)
@@ -342,63 +378,50 @@ class ChatViewModel(
 
     private fun toggleVoiceRecording() {
         if (_uiState.value.isRecordingVoice) {
-            speechRecognizerManager.stopListening()
             voiceRecordingJob?.cancel()
-            voiceRecordingJob = null
             _uiState.update { it.copy(isRecordingVoice = false) }
+            speechRecognizerManager.stopListening()
         } else {
             _uiState.update { it.copy(isRecordingVoice = true) }
             voiceRecordingJob = viewModelScope.launch {
-                try {
-                    speechRecognizerManager.startListening().collect { text ->
-                        if (text.isNotBlank()) {
-                            _uiState.update {
-                                val current = it.currentInput
-                                val sep =
-                                    if (current.isNotEmpty() && !current.endsWith(" ")) " " else ""
-                                it.copy(currentInput = current + sep + text)
-                            }
-                        }
-                    }
-                } finally {
-                    _uiState.update { it.copy(isRecordingVoice = false) }
+                speechRecognizerManager.startListening().collect { text ->
+                    _uiState.update { it.copy(currentInput = it.currentInput + " " + text) }
                 }
             }
         }
     }
 
     private fun stopStreaming() {
-        val job = streamingJob
-        if (job != null) {
-            job.cancel()
-            streamingJob = null
-            
-            val content = _uiState.value.streamingContent
-            if (content.isNotEmpty()) {
-                val isPrivate = _uiState.value.isPrivateMode
-                val convId = _uiState.value.currentConversationId
-                viewModelScope.launch {
-                    chatManager.commitAssistantMessage(content, isPrivate, convId)
+        streamingJob?.cancel()
+        streamingJob = null
+        val content = _uiState.value.streamingContent
+        if (content.isNotEmpty()) {
+            viewModelScope.launch {
+                chatManager.commitAssistantMessage(
+                    content = content,
+                    isPrivate = _uiState.value.isPrivateMode
+                )
+                _uiState.update {
+                    it.copy(
+                        isStreaming = false,
+                        streamingContent = ""
+                    )
                 }
             }
+        } else {
+            _uiState.update { it.copy(isStreaming = false) }
         }
-        _uiState.update { it.copy(isStreaming = false, streamingContent = "") }
     }
 
     private fun sendMessage() {
-        val currentState = _uiState.value
-        val text = currentState.currentInput.trim()
-        val attachedFiles = currentState.attachedFiles
+        val input = _uiState.value.currentInput
+        val attachedFiles = _uiState.value.attachedFiles
+        if (input.isBlank() && attachedFiles.isEmpty()) return
 
-        if (text.isEmpty() && attachedFiles.isEmpty()) return
-        if (currentState.isStreaming || !currentState.isModelReady) return
+        stopStreaming()
 
-        val selectedModel = currentState.selectedModel
-        val supportsVision = selectedModel?.supportsVision == true
-        val filesForEngine = if (supportsVision) attachedFiles else emptyList()
-
-        val isPrivate = currentState.isPrivateMode
-        val modelId = selectedModel?.id ?: ""
+        val isPrivate = _uiState.value.isPrivateMode
+        val modelId = _uiState.value.selectedModel?.id ?: "unknown"
 
         _uiState.update {
             it.copy(
@@ -409,69 +432,40 @@ class ChatViewModel(
             )
         }
 
-        val startTime = currentTimeMillis()
-        val job = viewModelScope.launch {
-            try {
-                val enginePrompt = text.ifEmpty { getString(Res.string.describe_image) }
+        streamingJob = viewModelScope.launch {
+            val historyFiles = attachedFiles.map { it.copy() }
 
-                var fullResponse = ""
-                chatManager.sendMessage(
-                    uiPrompt = text,
-                    enginePrompt = enginePrompt,
-                    modelId = modelId,
-                    isPrivate = isPrivate,
-                    isAgentic = isAgentic,
-                    files = filesForEngine,
-                    historyFiles = attachedFiles
-                ).collect { chunk ->
-                    val latency = currentTimeMillis() - startTime
-                    fullResponse += chunk.text
-
-                    val historyTokens =
-                        chatManager.messages.value.sumOf { (it.content.length / 4) + 1 }
-                    val systemTokens = currentSystemPrompt.length / 4
-                    val estimatedTokens =
-                        historyTokens + systemTokens + (fullResponse.length / 4) + (text.length / 4)
-
-                    _uiState.update {
-                        it.copy(
-                            streamingContent = fullResponse,
-                            isStreaming = !chunk.isFinal,
-                            metrics = it.metrics.copy(
-                                latencyMs = latency,
-                                contextUsed = estimatedTokens
-                            )
-                        )
-                    }
-                    if (chunk.isFinal) {
-                        if (streamingJob == coroutineContext[Job]) {
-                            chatManager.commitAssistantMessage(fullResponse, isPrivate)
-                            _uiState.update {
-                                it.copy(
-                                    streamingContent = "",
-                                    isStreaming = false
-                                )
-                            }
-                            streamingJob = null
-                        }
-                    }
+            chatManager.sendMessage(
+                uiPrompt = input,
+                enginePrompt = input,
+                modelId = modelId,
+                isPrivate = isPrivate,
+                isAgentic = isAgentic,
+                files = attachedFiles,
+                historyFiles = historyFiles
+            ).catch { e ->
+                _uiState.update {
+                    it.copy(
+                        isStreaming = false,
+                        streamingContent = "Error: ${e.message}"
+                    )
                 }
-            } catch (_: CancellationException) {
-            } catch (e: Exception) {
-                if (streamingJob == coroutineContext[Job]) {
+            }.collect { chunk ->
+                if (chunk.isFinal) {
+                    chatManager.commitAssistantMessage(
+                        content = _uiState.value.streamingContent,
+                        isPrivate = isPrivate
+                    )
                     _uiState.update {
                         it.copy(
                             isStreaming = false,
-                            streamingContent = "Error: ${e.message}"
+                            streamingContent = ""
                         )
                     }
-                }
-            } finally {
-                if (streamingJob == coroutineContext[Job]) {
-                    streamingJob = null
+                } else {
+                    _uiState.update { it.copy(streamingContent = it.streamingContent + chunk.text) }
                 }
             }
         }
-        streamingJob = job
     }
 }

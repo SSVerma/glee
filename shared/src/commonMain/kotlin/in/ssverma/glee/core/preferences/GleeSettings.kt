@@ -102,4 +102,8 @@ class GleeSettings(private val settings: ObservableSettings) {
     fun setHasRequestedNotifications(requested: Boolean) {
         settings[KEY_HAS_REQUESTED_NOTIFICATIONS] = requested
     }
+
+    fun clearAll() {
+        settings.clear()
+    }
 }

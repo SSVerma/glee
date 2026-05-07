@@ -9,4 +9,5 @@ interface ChatRepository {
     suspend fun deleteConversation(conversationId: String)
     suspend fun getMessages(conversationId: String): List<ChatMessage>
     suspend fun saveMessage(conversationId: String, message: ChatMessage)
+    suspend fun clearAllData()
 }

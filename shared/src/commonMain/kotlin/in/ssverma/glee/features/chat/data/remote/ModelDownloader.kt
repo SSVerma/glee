@@ -37,6 +37,7 @@ class KtorModelDownloader(
     ): Flow<DownloadStatus> = channelFlow {
         send(DownloadStatus.Progress(0f))
 
+        var success = false
         try {
             client.prepareGet(url) {
                 // IMPORTANT: Overwrite Accept header for binary download
@@ -68,16 +69,29 @@ class KtorModelDownloader(
                             sink.write(buffer, 0, read)
                         }
                         sink.flush()
+                        success = true
+                        send(DownloadStatus.Success(targetPath))
                     } finally {
                         sink.close()
                     }
-                    send(DownloadStatus.Success(targetPath))
                 } else {
                     send(DownloadStatus.Error(getString(Res.string.download_failed)))
                 }
             }
         } catch (e: Exception) {
+            // Re-throw CancellationException to allow flow cancellation
+            if (e is kotlinx.coroutines.CancellationException) throw e
             send(DownloadStatus.Error(getString(Res.string.download_failed)))
+        } finally {
+            if (!success) {
+                try {
+                    if (okioFs.exists(targetPath)) {
+                        okioFs.delete(targetPath)
+                    }
+                } catch (e: Exception) {
+                    // Ignore cleanup errors
+                }
+            }
         }
     }
 }

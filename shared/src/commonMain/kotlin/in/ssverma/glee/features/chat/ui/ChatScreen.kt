@@ -31,12 +31,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
@@ -75,10 +78,12 @@ import glee.shared.generated.resources.dont_show_again
 import glee.shared.generated.resources.incognito_desc
 import glee.shared.generated.resources.incognito_info_title
 import glee.shared.generated.resources.initializing_model_banner
+import glee.shared.generated.resources.retry
 import `in`.ssverma.glee.core.common.platform.PermissionType
 import `in`.ssverma.glee.core.ui.components.GleeSidebar
 import `in`.ssverma.glee.features.chat.domain.model.AttachedFile
 import `in`.ssverma.glee.features.chat.domain.model.ChatMetrics
+import `in`.ssverma.glee.features.chat.domain.model.Conversation
 import `in`.ssverma.glee.features.chat.domain.model.MessageList
 import `in`.ssverma.glee.features.chat.domain.model.ModelDownloadStatus
 import `in`.ssverma.glee.features.chat.domain.model.ModelInfo
@@ -241,6 +246,7 @@ fun ChatScreen(
                     currentInput = uiState.currentInput,
                     isModelReady = uiState.isModelReady,
                     isInitializing = uiState.isInitializing,
+                    loadError = uiState.loadError,
                     anyModelDownloaded = anyModelDownloaded,
                     showNoModelBanner = showNoModelBanner,
                     selectedModel = uiState.selectedModel,
@@ -531,6 +537,7 @@ fun ChatContent(
     currentInput: String,
     isModelReady: Boolean,
     isInitializing: Boolean,
+    loadError: String?,
     anyModelDownloaded: Boolean,
     showNoModelBanner: Boolean,
     selectedModel: ModelInfo?,
@@ -593,11 +600,27 @@ fun ChatContent(
                 }
 
                 AnimatedVisibility(
-                    visible = isInitializing,
+                    visible = (isInitializing || loadError != null) && !isModelReady,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
-                    InitializingInfoBar()
+                    InitializingInfoBar(
+                        isInitializing = isInitializing,
+                        error = loadError,
+                        onRetry = {
+                            selectedModel?.let {
+                                onIntent(
+                                    ChatIntent.StartConversation(
+                                        Conversation(
+                                            id = "",
+                                            title = "",
+                                            modelId = it.id
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    )
                 }
 
                 ChatInputBar(
@@ -688,29 +711,54 @@ fun ChatContent(
 }
 
 @Composable
-private fun InitializingInfoBar() {
+private fun InitializingInfoBar(
+    isInitializing: Boolean,
+    error: String?,
+    onRetry: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+        color = if (!error.isNullOrBlank()) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+        else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(16.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.secondary
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = stringResource(Res.string.initializing_model_banner),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            if (isInitializing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = stringResource(Res.string.initializing_model_banner),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            } else if (!error.isNullOrBlank()) {
+                Icon(
+                    imageVector = Icons.Default.Error,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = onRetry) {
+                    Text(stringResource(Res.string.retry), fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }

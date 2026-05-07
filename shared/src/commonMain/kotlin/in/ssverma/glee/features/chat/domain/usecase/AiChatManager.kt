@@ -211,4 +211,10 @@ class AiChatManager(
         _messages.update { emptyList() }
         currentConversation = null
     }
+
+    suspend fun clearAllData() {
+        clearChat()
+        repository.clearAllData()
+        loadConversations()
+    }
 }

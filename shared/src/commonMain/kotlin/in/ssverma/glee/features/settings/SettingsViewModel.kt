@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.default_system_prompt
 import `in`.ssverma.glee.core.preferences.GleeSettings
+import `in`.ssverma.glee.features.chat.data.repository.AiModelRepository
 import `in`.ssverma.glee.features.chat.domain.usecase.AiChatManager
 import `in`.ssverma.glee.features.chat.domain.model.BackendType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,8 @@ import org.jetbrains.compose.resources.getString
 
 class SettingsViewModel(
     private val settings: GleeSettings,
-    private val chatManager: AiChatManager
+    private val chatManager: AiChatManager,
+    private val modelRepository: AiModelRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsState())
@@ -96,6 +98,13 @@ class SettingsViewModel(
             }
 
             is SettingsIntent.SetShowIncognitoInfo -> settings.setShouldShowIncognitoInfo(intent.show)
+            SettingsIntent.ClearAllData -> {
+                viewModelScope.launch {
+                    chatManager.clearAllData()
+                    modelRepository.deleteAllModels()
+                    settings.clearAll()
+                }
+            }
         }
     }
 }
