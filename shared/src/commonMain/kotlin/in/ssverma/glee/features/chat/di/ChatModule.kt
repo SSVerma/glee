@@ -1,5 +1,6 @@
 package `in`.ssverma.glee.features.chat.di
 
+import `in`.ssverma.glee.core.common.platform.getSystemMetrics
 import `in`.ssverma.glee.domain.AiEngine
 import `in`.ssverma.glee.domain.LiteRtEngine
 import `in`.ssverma.glee.features.chat.data.repository.AiModelRepository
@@ -20,6 +21,7 @@ val chatModule = module {
     single<AiEngine> { LiteRtEngine() }
     singleOf(::AgentProcessor)
     singleOf(::AiChatManager)
+    single { getSystemMetrics() }
 
     single { GleeTools.getDefaultSkills(urlLauncher = get(), json = get()) }
     single { AiModelRepository(fileSystem = get(), appDataDir = get(named("appDataDir"))) }
@@ -34,7 +36,8 @@ val chatModule = module {
             appDataDir = get(named("appDataDir")),
             speechRecognizerManager = get(),
             modelRepository = get(),
-            suggestionProvider = get()
+            suggestionProvider = get(),
+            systemMetrics = get()
         )
     }
 

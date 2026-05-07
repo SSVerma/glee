@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import glee.shared.generated.resources.Res
 import glee.shared.generated.resources.default_system_prompt
+import `in`.ssverma.glee.core.common.currentTimeMillis
 import `in`.ssverma.glee.core.common.platform.PlatformType
 import `in`.ssverma.glee.core.common.platform.SpeechRecognizerManager
 import `in`.ssverma.glee.core.common.platform.SystemMetrics
@@ -45,13 +46,9 @@ class ChatViewModel(
     private val appDataDir: Path,
     private val speechRecognizerManager: SpeechRecognizerManager,
     private val modelRepository: AiModelRepository,
-    private val suggestionProvider: ChatSuggestionProvider
+    private val suggestionProvider: ChatSuggestionProvider,
+    private val systemMetrics: SystemMetrics
 ) : ViewModel() {
-
-    private val systemMetrics = object : SystemMetrics {
-        override fun getUsedRamGb(): Float = 0f
-        override fun getTotalRamGb(): Float = 0f
-    }
 
     private val _uiState = MutableStateFlow(ChatState())
     val uiState: StateFlow<ChatState> = _uiState.asStateFlow()
@@ -439,6 +436,8 @@ class ChatViewModel(
             )
         }
 
+        val startTime = currentTimeMillis()
+
         streamingJob = viewModelScope.launch {
             val historyFiles = attachedFiles.map { it.copy() }
 
@@ -459,6 +458,7 @@ class ChatViewModel(
                 }
             }.collect { chunk ->
                 if (chunk.isFinal) {
+                    val latency = currentTimeMillis() - startTime
                     chatManager.commitAssistantMessage(
                         content = _uiState.value.streamingContent,
                         isPrivate = isPrivate
@@ -466,7 +466,8 @@ class ChatViewModel(
                     _uiState.update {
                         it.copy(
                             isStreaming = false,
-                            streamingContent = ""
+                            streamingContent = "",
+                            metrics = it.metrics.copy(latencyMs = latency)
                         )
                     }
                 } else {
