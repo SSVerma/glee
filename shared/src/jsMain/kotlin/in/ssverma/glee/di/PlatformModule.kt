@@ -65,6 +65,8 @@ class JsGleeDatabase : GleeDatabase() {
         override suspend fun getMessages(conversationId: String): List<MessageEntity> = emptyList()
         override suspend fun insertMessage(message: MessageEntity) {}
         override suspend fun deleteMessages(conversationId: String) {}
+        override suspend fun clearConversations() {}
+        override suspend fun clearMessages() {}
     }
 
     override fun createInvalidationTracker(): androidx.room3.InvalidationTracker {
