@@ -37,7 +37,7 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
     actual override suspend fun loadModel(config: ModelConfig): Result<Unit> = mutex.withLock {
         withContext(Dispatchers.Default) {
             runCatching {
-                val file = java.io.File(config.modelPath)
+                val file = File(config.modelPath)
                 Log.d(
                     "LiteRtEngine",
                     "Model file exists: ${file.exists()}, size: ${file.length()} bytes"
@@ -239,7 +239,7 @@ actual class LiteRtEngine actual constructor() : AiEngine, KoinComponent {
             }
 
             try {
-                val cleanPrompt = prompt.trim()
+                val cleanPrompt = prompt.trim().ifBlank { "Describe the image" }
                 if (cleanPrompt.isEmpty()) {
                     emit(AiChunk(text = "Please enter a valid message.", isFinal = true))
                     return@withLock
